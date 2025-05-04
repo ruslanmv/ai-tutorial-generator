@@ -1,0 +1,19 @@
+# Virtual environment
+.venv/
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+# Docling intermediate output
+docling_output/
+# Editor directories and files
+.vscode/
+.idea/
+*.sublime-workspace
+# OS artifacts
+.DS_Store
+Thumbs.db
+# Logs
+*.log
+# Environment variables file
+.env
+/backup

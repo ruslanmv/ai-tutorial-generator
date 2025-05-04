@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Tutorial Generator</title>
+  <!-- CSS reset and basic styling -->
+  <style>
+    /* Reset some defaults */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 1rem;
+      color: #2c3e50;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      padding: 2rem;
+    }
+
+    form {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid #ccd0d5;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    button {
+      padding: 0.75rem 1.25rem;
+      border: none;
+      border-radius: 4px;
+      background-color: #007bff;
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #rendered-html {
+      margin-top: 1rem;
+    }
+
+    /* Markdown content styling */
+    #rendered-html h2, #rendered-html h3, #rendered-html h4 {
+      margin-top: 1.5rem;
+      color: #2c3e50;
+    }
+    #rendered-html p {
+      margin: 0.75rem 0;
+    }
+    #rendered-html ul, #rendered-html ol {
+      margin: 0.75rem 0 0.75rem 1.5rem;
+    }
+    #rendered-html pre {
+      background: #f0f0f0;
+      padding: 1rem;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    #rendered-html code {
+      font-family: Consolas, 'Courier New', monospace;
+      background: rgba(27,31,35,0.05);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    .loading {
+      font-style: italic;
+      color: #555;
+    }
+  </style>
+
+  <!-- marked.js for Markdown → HTML -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- DOMPurify to sanitize generated HTML -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>AI Tutorial Generator</h1>
+    <p>Enter a URL or local file path to a PDF/HTML document to generate a step-by-step tutorial.</p>
+    <form id="generate-form">
+      <input
+        type="text"
+        id="source-input"
+        name="source_uri"
+        placeholder="https://example.com/guide.pdf or /path/to/file.pdf"
+        required
+      />
+      <button type="submit">Generate</button>
+    </form>
+
+    <div id="status"></div>
+    <div id="rendered-html">
+      <p class="loading">Your tutorial will appear here after generation...</p>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('generate-form');
+    const sourceInput = document.getElementById('source-input');
+    const statusDiv = document.getElementById('status');
+    const outputDiv = document.getElementById('rendered-html');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const source = sourceInput.value.trim();
+      if (!source) return;
+
+      statusDiv.textContent = 'Generating tutorial…';
+      outputDiv.innerHTML = '<p class="loading">Processing, please wait…</p>';
+      try {
+        const response = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ source_uri: source })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+
+        const text = await response.text();
+        // The server re-renders the same template with tutorial_content injected,
+        // so we need to extract the raw Markdown textarea value if present.
+        // Fallback: assume response contains the Markdown in a <textarea id="markdown-content">
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = text;
+        const ta = tempDiv.querySelector('#markdown-content');
+        let md = '';
+        if (ta) {
+          md = ta.value;
+        } else {
+          // Otherwise, search for our rendered HTML container
+          const rendered = tempDiv.querySelector('#rendered-html');
+          outputDiv.innerHTML = rendered ? rendered.innerHTML : text;
+          statusDiv.textContent = '';
+          return;
+        }
+
+        // Convert Markdown to sanitized HTML
+        const rawHtml = marked.parse(md);
+        outputDiv.innerHTML = DOMPurify.sanitize(rawHtml);
+        statusDiv.textContent = 'Tutorial generated successfully.';
+      } catch (err) {
+        console.error(err);
+        statusDiv.textContent = 'Error: ' + err.message;
+        outputDiv.innerHTML = `<pre class="error">${err.message}</pre>`;
+      }
+    });
+  </script>
+</body>
+</html>
