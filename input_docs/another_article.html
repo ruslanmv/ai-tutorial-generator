@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<!-- saved from url=(0094)https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25/education#ai-agents -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta content="D11oKgkDKD0ce302ZSQJVCRpLVw_ESs3i7EMPv_EX2Pz2cYeV0u2vPsr" name="csrf-token">
+    <title>Lean AI Solutions Hackathon, with IBM Granite Models | Compete</title>
+    <link rel="stylesheet" href="./another_article_files/app-6735cba1076a0e0c70fcbf88e3f56a7c.css">
+    <style>
+/* Change the competitions page fonts to IBM Plex*/
+.font-sans {
+  font-family: "IBM Plex Sans", Arial, sans-serif;
+}
+
+/* Use lighter font for page headings*/
+h1 {
+  font-weight: lighter !important;
+}
+
+/* Banner image */
+body > div > img {
+  height: 200px !important;
+  content: url('https://sn-portals-custom-images.s3.us-east.cloud-object-storage.appdomain.cloud/2025_TXC_Banner_2.png');
+}
+
+/* Change logo in header */
+nav a img.h-10 {
+  background: url("https://www.ibm.com/brand/experience-guides/developer/b1db1ae501d522a1a4b49613fe07c9f1/01_8-bar-positive.svg");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding-left: 100%;
+  height: 50px;
+  width: 150px;
+}
+
+/* Change lefthand competition image on details page */
+.competition-container img.w-full.rounded.shadow {
+  background: url("https://sn-portals-custom-images.s3.us-east.cloud-object-storage.appdomain.cloud/2025_TXC_Logo.png");
+  padding-left: 100%;
+  height: 200px !important;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  box-shadow: none;
+}
+
+/* Hide details on lefthand side of the details page */
+.competition-container div.max-w-xs.p-0 div,
+.competition-container div.max-w-xs.p-0 small,
+.competition-container div.max-w-xs.p-0 h4 {
+  display: none;
+}
+
+/* Utilizing the full width of the competition's detail description section */
+.competition-container > .competition-description > .prose {
+  max-width: 100% !important;
+}
+
+/* Clear floats after the columns in details desciption page  */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+  padding-bottom: 50px;
+}
+
+/* Hide total number of teams content on left side of the deatils page */
+body
+  > main
+  > div
+  > div.max-w-xs.p-0
+  > div.w-100.flex
+  > span.font-semibold.text-base.mt-4.mr-8.text-gray-800 {
+  display: none;
+}
+
+/* Hide total number of submissions content on left side of the deatils page */
+body > main > div > div.max-w-xs.p-0 > div.w-100.flex > span:nth-child(2) {
+  display: none;
+}
+
+/* Hide location content field on left side of the deatils page */
+body
+  > main
+  > div
+  > div.max-w-xs.p-0
+  > h4.mt-2.font-bold.text-gray-800.text-base {
+  display: none;
+}
+
+/* Hide location value field on left side of the deatils page */
+body > main > div > div.max-w-xs.p-0 > h4:nth-child(6) {
+  display: none;
+}
+
+/* Hide team size content field on left side of the deatils page */
+body > main > div > div.max-w-xs.p-0 > h4:nth-child(11) {
+  display: none;
+}
+
+/* Hide team size value field on left side of the deatils page */
+body > main > div > div.max-w-xs.p-0 > h4:nth-child(12) {
+  display: none;
+}
+
+/* Hide Daily Submission Limit content field on left side of the deatils page */
+body > main > div > div.max-w-xs.p-0 > h4:nth-child(13) {
+  display: none;
+}
+
+/* Hide Daily Submission Limit value field on left side of the deatils page */
+body
+  > main
+  > div
+  > div.max-w-xs.p-0
+  > h4.my-2.font-semibold.text-gray-500.text-base {
+  display: none;
+}
+
+/* Hide Daily Submission Limit time field on left side of the deatils page */
+body > main > div > div.max-w-xs.p-0 > small {
+  display: none;
+}
+
+/* Hide Total Submission Limit content field on left side of the deatils page */
+body > main > div > div.max-w-xs.p-0 > h4:nth-child(16) {
+  display: none;
+}
+
+/* Hide Total Submission Limit value field on left side of the deatils page */
+body > main > div > div.max-w-xs.p-0 > h4:nth-child(17) {
+  display: none;
+}
+
+/* Hide the Leaderboard section/tab on the competitions page */
+a[href$="/leaderboard"] {
+  display: none;
+}
+
+/* Make all the hyperlinks/anchor tags blue color */
+main .prose a {
+  color: blue;
+}
+
+/* Hide the leaderborad notification on my teams submissions */
+#submissions div.bg-yellow-50 {
+  display: none;
+}
+
+/* Hide the leaderboard notification sign on my teams submissions */
+body
+  > main
+  > div
+  > div.w-1\/5.float-left
+  > nav
+  > a:nth-child(5)
+  > span.ml-auto.inline-block.py-0\.5.px-3.text-xs.leading-4.rounded-full.bg-yellow-50.group-focus\:bg-gray-100.transition.ease-in-out.duration-150 {
+  display: none;
+}
+
+/* Hides the filters on the Join a Team page */
+div.flex.w-full.justify-between.space-x-2.mb-4 > div.space-y-4.space-x-4 {
+display: none;
+}
+
+/* FILTERS INVITE TEAM MEMBERS*/
+/* Hides filters on Invite Members sub tab on My Team page */
+.field-organization, .field-or_older,.field-state,.field-contact_sharing,.field-is_student,.field-terms_and_conditions,.field-title,.field-url,.field-official_rules,.field-theme{ display: none }
+
+ /* Hides above filters from the Invite Members table */
+[phx-click="set_sort_field"][phx-value-field="organization"], [phx-click="set_sort_field"][phx-value-field="official_rules"],[phx-click="set_sort_field"][phx-value-field="or_older"],[phx-click="set_sort_field"][phx-value-field="contact_sharing"],[phx-click="set_sort_field"][phx-value-field="is_student"],[phx-click="set_sort_field"][phx-value-field="state"],[phx-click="set_sort_field"][phx-value-field="title"],[phx-click="set_sort_field"][phx-value-field="terms_and_conditions"],
+[phx-click="set_sort_field"][phx-value-field="url"],[phx-click="set_sort_field"][phx-value-field="theme"] { display: none; }
+
+
+/* FILTERS JOIM A TEAM MEMBERS*/
+/* Hides Role Designation under the Team Members table */
+#members td select {display: none;}
+
+/* Hides Role Header under the team members table */
+#members th:nth-child(2) {visibility: hidden;}
+
+/* Update look up field at the top of the Team Members tab to say "Specify email" */
+#members h3.tracking-widest { font-size: 0px; }
+#members h3.tracking-widest:after { content: "Specify email"; font-size: 18px; }
+
+/* Hide Juding Customizations */
+.judging .current-submission-team-name, .judging .team-image, .judging .deliverable.team_emails, .judging .submission-links, .judging .submission-attachments { display: none; }
+
+
+/* Direct update of notification bell icon */
+img[src="/images/bell.svg"]{ background: url(https://sn-portals-custom-images.s3.us-east.cloud-object-storage.appdomain.cloud/bell.svg) no-repeat; }
+
+/*Change the Find Members sub tab in My Team (after team creation or add) to "Invite Members"*/
+a[data-tab="find_members"] > span {
+  visibility: hidden;
+}
+a[data-tab="find_members"] > span:before {
+  content:"Invite Members";
+  visibility: visible;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+}
+
+/* Hides the Upload Image form field on the Create a Team tab - My Team */
+form.space-y-4 > div.mb-6 {
+  display: none;
+}
+
+/* Hides the About your team form field on the Create a Team tab - My Team */
+form.space-y-4 > div.my-4 {
+  display: none;
+}
+
+/* Hides Privacy notice in the footer on competition site */
+body > footer > div > div > div.flex.justify-center.sm\:justify-start.items-center.mt-2.gap-8.xl\:mt-0 > ul > li:nth-child(1) > a {
+  display: none;
+}
+/* Hides Terms of Service in the footer on competition site */
+body > footer > div > div > div.flex.justify-center.sm\:justify-start.items-center.mt-2.gap-8.xl\:mt-0 > ul > li:nth-child(2) > a {
+  display: none;
+}
+
+/* Hide the powered by broken logo at the bottom of the page */
+body > div.bg-white.mt-16 > div > div.mt-8.md\:mt-0.md\:order-1 {
+  display: none;
+}
+
+/*--------------------------------------------------------------*/
+/*Challenge phase changes*/
+
+/* Hide submissions tab in My Team tab (until competition is live) */
+/*a[data-tab="submissions"] {
+  display: none;
+  }*/
+/* Hide the Complete the hackathon section/tab on the competitions page */
+/*a[href$="/complete-the-hackathon"] {
+  display: none;
+}*/
+
+/* Hide the Team-building instructions section/tab on the competitions page */
+/*a[href$="/team-building-instructions"] {
+  display: none;
+}*/
+
+/* Hide the My Team/Set up a team section/tab on the competitions page */
+ /*a[href$="/teams"] {
+  display: none;
+}*/
+
+#find_members table td:nth-child(3),
+#find_members table td:nth-child(4),
+#find_members table td:nth-child(5),
+#find_members table td:nth-child(7),
+#find_members table td:nth-child(8),
+#find_members table td:nth-child(9) { 
+  display: none;
+}
+    </style>
+    <script>
+(function() {
+  setTimeout(function() {
+    var leaveTeamButton = document.querySelector("[data-confirm='Are you sure you want to leave this team?']");
+    if (leaveTeamButton) { leaveTeamButton.dataset.confirm = "Are you sure you want to leave your team? Be aware you will also be removed from your team’s IBM Cloud account for this hackathon and you will no longer have access." }
+    var disbandTeamButton = document.querySelector("[data-confirm='Are you sure you want to leave and disband this team?']");
+    if (disbandTeamButton) { disbandTeamButton.dataset.confirm = "This will delete the team for all members. Are you sure you want to delete your team? Be aware this will also delete your team’s IBM Cloud account for this hackathon. Once the IBM Cloud account is deleted, it cannot be recovered, so confirm that any work you need to keep is backed up before deleting your team. See the Hackathon guide for more on backing up your account."; }
+    var removeParticipantButton = document.querySelector("[data-confirm='Are you sure you want to remove this user?']");
+    if (removeParticipantButton) { removeParticipantButton.dataset.confirm = "Are you sure you want to remove this member from your team?\n\nBe aware they will also be removed from your team’s IBM Cloud account for this hackathon and they will no longer have access."; }
+
+
+     var notification = document.querySelector('.flash-notification');
+    if (notification && notification.innerText == "INVITATION ACCEPTED") { alert("Welcome to the team!\n\nIf your team has already requested an IBM Cloud account, you will be added to that account within the next hour. Check the email you used to register for the hackathon for an invitation from IBM Cloud to join the account.\n\nCheck your junk/spam folder if you are not able to find the email in your inbox. If your team has not yet requested an account, you will be included when they do. See the instructions on the “Complete the hackathon” page for more details."); }
+      if (notification && notification.innerText == "REQUEST ACCEPTED") { alert("Your new team member has been successfully added.\n\nIf your team has already requested an IBM Cloud account, they will be added to that account within the next hour. They can check the email they used to register for the hackathon for an invitation from IBM Cloud to join the account.\n\nIf your team has not yet requested an account, they will be included when you do. See the instructions on the “Complete the hackathon” page for more details"); }
+  }, 250);
+})();
+    </script>
+    <script defer="" src="./another_article_files/cdn.min.js.download"></script>
+    <script defer="" src="./another_article_files/cdn.min(1).js.download">
+    </script>
+  </head>
+  <body class="subpixel-antialiased font-sans bg-gray-50 min-h-screen" data-new-gr-c-s-check-loaded="14.1233.0" data-gr-ext-installed="">
+<nav class="flex items-center justify-between flex-wrap bg-white p-3 shadow-md">
+  <a href="https://04hackathon.watsonx-challenge.ibm.com/" class="flex items-center flex-no-shrink ml-2 mr-6">
+    <img class="h-10" src="./another_article_files/xummntu4egymggf2a4y59zkuxi00">
+    </a><div class="header-nav-links hidden"><a href="https://04hackathon.watsonx-challenge.ibm.com/" class="flex items-center flex-no-shrink ml-2 mr-6">
+
+        </a><a href="https://compete.04hackathon.watsonx-challenge.ibm.com/learn">Learning Paths</a>
+
+        <a href="https://compete.04hackathon.watsonx-challenge.ibm.com/courses">Courses &amp; Projects</a>
+
+        <a href="https://compete.04hackathon.watsonx-challenge.ibm.com/events">Events</a>
+
+    </div>
+  
+
+    <div class="flex mt-2">
+<div id="phx-GDxkaGSp0JA3wuIC" data-phx-session="SFMyNTY.g2gDaAJhBXQAAAAIdwJpZG0AAAAUcGh4LUdEeGthR1NwMEpBM3d1SUN3B3Nlc3Npb250AAAAAW0AAAAMY3VycmVudF91c2VydAAAAAl3AmlkYgAABhl3B3Byb2ZpbGV3A25pbHcIdXNlcm5hbWVtAAAACHJ1c2xhbm12dwpfX3N0cnVjdF9fdxlFbGl4aXIuQ29tcGV0ZS5Vc2Vycy5Vc2VydwRyb2xlbQAAAAR1c2Vydwp1cGRhdGVkX2F0dAAAAAl3C21pY3Jvc2Vjb25kaAJhAGEAdwZzZWNvbmRhGXcIY2FsZW5kYXJ3E0VsaXhpci5DYWxlbmRhci5JU093Cl9fc3RydWN0X193FEVsaXhpci5OYWl2ZURhdGVUaW1ldwVtb250aGEEdwNkYXlhGHcEeWVhcmIAAAfpdwZtaW51dGVhC3cEaG91cmEVdwhfX21ldGFfX3QAAAAGdwVzdGF0ZXcGbG9hZGVkdwdjb250ZXh0dwNuaWx3BnByZWZpeHcDbmlsdwpfX3N0cnVjdF9fdxtFbGl4aXIuRWN0by5TY2hlbWEuTWV0YWRhdGF3BnNvdXJjZW0AAAAFdXNlcnN3BnNjaGVtYXcZRWxpeGlyLkNvbXBldGUuVXNlcnMuVXNlcncLaW5zZXJ0ZWRfYXR0AAAACXcLbWljcm9zZWNvbmRoAmEAYQB3BnNlY29uZGEZdwhjYWxlbmRhcncTRWxpeGlyLkNhbGVuZGFyLklTT3cKX19zdHJ1Y3RfX3cURWxpeGlyLk5haXZlRGF0ZVRpbWV3BW1vbnRoYQR3A2RheWEYdwR5ZWFyYgAAB-l3Bm1pbnV0ZWELdwRob3VyYRV3CmVtYWlsX2hhc2htAAAAQEI4N0Q5NUYyMUM3RTlCODE3NDdEM0Y1RDMzQTFCQkJFNEJFNTdGMjM1ODczODc3NjM5NUI2MDE1NTcxNEZBQTV3BHZpZXd3I0VsaXhpci5Db21wZXRlV2ViLk5vdGlmaWNhdGlvbnNMaXZldwpwYXJlbnRfcGlkdwNuaWx3BnJvdXRlcncDbmlsdwlyb290X3ZpZXd3I0VsaXhpci5Db21wZXRlV2ViLk5vdGlmaWNhdGlvbnNMaXZldwhyb290X3BpZHcDbmlsdwxsaXZlX3Nlc3Npb253A25pbG4GAACrbZyWAWIAAVGA.DKimyRDibU-I_Fq_W8BiXZt0Q8oZKjF8bX5PMIbPu4c" data-phx-static="SFMyNTY.g2gDaAJhBXQAAAADdwJpZG0AAAAUcGh4LUdEeGthR1NwMEpBM3d1SUN3BWZsYXNodAAAAAB3CmFzc2lnbl9uZXdqbgYAAKttnJYBYgABUYA.7Rs1pOMbBanShck0ZDcvh1Rbk1XlaU8jL8FQHpepDsg" class="phx-connected" data-phx-root-id="phx-GDxkaGSp0JA3wuIC"><div phx-click="toggle_open" class="notifications relative select-none mt-1 mr-6">
+  <img class="cursor-pointer fill-current h-6 w-6" src="./another_article_files/bell-86facaccbf1a6c7def3651ff56008134.svg">
+  <div style="top: -12px; right: -6px;" class="absolute text-xs rounded-full border border-white w-5 h-5 bg-red-100 text-red flex justify-center items-center fold-semibold">
+    0
+  </div>
+  <div id="notification_dropdown" style="top: 100%; left: 0%; transform: translate(-75%, 24px); width: 400px;" class="hidden absolute shadow-lg p-3 z-50 bg-white rounded">
+    <h3 class="text-center text-gray-700 tracking-wide uppercase mb-3 pb-2 border-b border-gray-200 ">
+      Notifications
+    </h3>
+    <ul>
+      
+      
+
+      <h4 class="hidden only:block text-center text-gray-600 tracking-wide uppercase my-3 py-2">
+        No notifications
+      </h4>
+    </ul>
+  </div>
+</div></div>
+      <div x-data="{open: false}" @click.outside="open = false" @keydown.escape.stop="open = false" class=" pc-dropdown">
+  <div>
+    <button type="button" class="pc-dropdown__trigger-button--with-label-and-trigger-element" @click.outside="open = false" @click="open = !open" x-bind:aria-expanded="open.toString()" aria-haspopup="true" aria-expanded="false">
+      <span class="sr-only">Open options</span>
+
+      
+
+      
+        
+          <div class="inline-flex items-center justify-center w-full align-middle focus:outline-none">
+            
+  
+    <img src="./another_article_files/profile_picture" class="pc-avatar--with-image pc-avatar--sm ">
+  
+
+            <span class="ml-2 text-sm text-gray-900">
+ruslanmv
+            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 ml-1 -mr-1 text-gray-400 dark:text-gray-100" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+  <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"></path>
+</svg>
+          </div>
+        
+      
+
+      
+    </button>
+  </div>
+  <div x-show="open" x-transition:enter="transition transform ease-out duration-100" x-transition:enter-end="transform opacity-100 scale-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:leave="transition ease-in duration-75" x-transition:leave-end="transform opacity-0 scale-95" x-transition:leave-start="transform opacity-100 scale-100" class="pc-dropdown__menu-items-wrapper-placement--left  pc-dropdown__menu-items-wrapper" role="menu" id="dropdown_b718b6c2-4fbb-4637-bdf1-6e55a3b1595b" aria-orientation="vertical" aria-labelledby="options-menu" style="display: none;">
+    <div class="py-1" role="none">
+      
+        <a href="https://04hackathon.watsonx-challenge.ibm.com/profile/ruslanmv" class=" pc-dropdown__menu-item ">
+  
+  View profile
+
+</a>
+        <a href="https://04hackathon.watsonx-challenge.ibm.com/profile/ruslanmv/edit?next=https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25/education" class=" pc-dropdown__menu-item ">
+  
+  Edit profile
+
+</a>
+        <a href="https://compete.04hackathon.watsonx-challenge.ibm.com/auth/logout" class=" pc-dropdown__menu-item ">
+  
+  Logout
+
+</a>
+      
+    </div>
+  </div>
+</div>
+    </div>
+
+</nav>
+    <div class="relative">
+      <img style="width: 100%; height: 350px; object-fit: cover; object-position: center; filter: brightness(90%);">
+    </div>
+<nav class="bg-white shadow">
+  <div class="max-w-7xl mx-auto">
+<a class="nav-link mr-8 inline-flex items-center px-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300 transition duration-150 ease-in-out py-4 font-medium" data-competition-tab="details" href="https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25">Details</a>
+<a class="nav-link mr-8 inline-flex items-center px-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300 transition duration-150 ease-in-out py-4 font-medium" data-competition-tab="leaderboard" href="https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25/leaderboard">Leaderboard</a>
+
+<a class="nav-link mr-8 inline-flex items-center px-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300 transition duration-150 ease-in-out py-4 font-medium" data-competition-tab="my _team" href="https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25/teams">My Team</a>
+
+
+
+
+<a class="active nav-link mr-8 inline-flex items-center px-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300 transition duration-150 ease-in-out py-4 font-medium" data-competition-tab="education" href="https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25/education">Education</a>
+
+<a class="nav-link mr-8 inline-flex items-center px-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300 transition duration-150 ease-in-out py-4 font-medium" data-competition-tab="team building instructions" href="https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25/team-building-instructions">Team building instructions</a>
+
+<a class="nav-link mr-8 inline-flex items-center px-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300 transition duration-150 ease-in-out py-4 font-medium" data-competition-tab="complete the hackathon" href="https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25/complete-the-hackathon">Complete the hackathon</a>
+
+
+  </div>
+</nav>
+    <main role="main" class="mt-16 max-w-7xl mx-auto" style="min-height: 60vh;">
+
+
+<div class="prose max-w-7xl">
+  <div class="bg-white rounded shadow w-full p-6">
+
+<style type="text/css">
+  .scrollButton {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 30px;
+    z-index: 99;
+    border: none;
+    outline: none;
+    background-color: #0f62fe;
+    color: white;
+    cursor: pointer;
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 11px;
+  }
+
+  .navigation-container {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .navigation-link {
+    font-size: 1rem;
+    color: blue;
+    text-decoration: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    text-align: center;
+  }
+
+  .navigation-link:hover {
+    font-weight: 500;
+  }
+
+  @media only screen and (min-width: 1170px) {
+    #navigation-bar {
+      display: none;
+    }
+  }
+  @media only screen and (max-width: 1171px) {
+    .navigation-container {
+      display: none;
+    }
+  }
+</style><h1>Education</h1><p><a href="https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25/education#meet">Meet IBM Granite</a> | <a href="https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25/education#learn">Learn about Granite</a> | <a href="https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25/education#granite-open-source">Granite offered on open source platforms</a> | <a href="https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25/education#watsonx-ai">Granite offered on watsonx.ai</a> | <a href="https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25/education#ai-agents">Learn about AI agents</a> | <a href="https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25/education#university">Learning activities for university students</a> | <a href="https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25/education#sdg">Explore UN SDG 8: Decent work and economic growth</a></p><p style="font-size:1rem;padding-top:1.5rem;">Learn about the family of IBM Granite models to understand how they work and how you can leverage them to build your innovative solution in this hackathon. If you're competing in the Decent work and economic growth challenge, brought to you by Call for Code, you will also find resources about the theme to help you research the problem you want to solve.</p><section id="meet"><h2>Meet IBM Granite</h2><div style="overflow-x:auto;"><table style="margin-bottom:0;margin-top:0;width:100%;"><tbody><tr><td><div><h3 style="margin-top:0;">What is Granite?</h3><div><iframe width="560" height="315" src="./another_article_files/cVDv9apGTXo.html" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen=""></iframe></div><p style="padding-bottom:1.5rem;"><i>~ 7 minute watch</i><br>Watch this short Granite introductory video to familiarize yourself with the <a target="_blank" rel="noopener noreferrer" href="https://www.ibm.com/granite">Granite models</a> and discover what they provide.</p></div></td><td><div><h3 style="margin-top:0;">Granite models in action</h3><div><iframe width="560" height="315" src="./another_article_files/hFjS5Wrqny4.html" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen=""></iframe></div><p><i>~ 9 minute watch</i><br>Watch this short Granite introductory video to familiarize yourself with how the various Granite models make an impact in business processes.</p></div></td></tr></tbody></table></div></section><section id="learn"><h2 style="margin-top:0;">Learn about Granite</h2><ul><li><a target="_blank" rel="noopener noreferrer" href="https://www.ibm.com/granite">Learn and explore IBM Granite</a><br><i>Article ~ 5 minute read</i><br>Explore the possibilities of how IBM Granite models are used and what they offer to your creative solutions.</li><li><a target="_blank" rel="noopener noreferrer" href="https://www.ibm.com/new/announcements/ibm-granite-3-3-speech-recognition-refined-reasoning-rag-loras">New efficient and performant Granite 3.3 models</a><br><i>Article ~ 15 minute read</i><br>Learn about the latest Granite 3.3 that offers enhanced reasoning, new speech recognition and RAG LoRAs capabilities.</li><li><a target="_blank" rel="noopener noreferrer" href="https://www.ibm.com/granite/playground/">Granite Playground</a><br><i>Playground</i><br>Try Granite Playground for free to prompt the Granite 3.3 model. <strong>Note</strong>: Do not build your solution for this hackathon in Granite Playground.</li></ul></section><section id="granite-open-source"><h2>Granite offered on open source platforms</h2><p>These resources will give you more insight into the different Granite models and hands-on practice use them with different use cases.</p><ul><li><a target="_blank" rel="noopener noreferrer" href="https://ibm.github.io/granite-workshop/">Try the Granite Workshop</a><br><i>Workshop ~ 1 hour hands-on lab experience</i><br>Follow along with this IBM Granite workshop to learn how to use the family of Granite models to address different use cases such as summarization, text generation, prediction and code generation.</li><li><a target="_blank" rel="noopener noreferrer" href="https://huggingface.co/ibm-granite">Explore Granite on Hugging Face</a><br><i>Open source resource</i><br>Explore the IBM Granite family of foundation models that span a variety of modalities, including language, code, and other modalities, such as time series.</li><li><a target="_blank" rel="noopener noreferrer" href="https://www.ibm.com/granite/docs/run/granite-with-ollama/mac/">Try Granite locally on Ollama</a><br><i>Open source resource</i><br>Run IBM Granite locally using Ollama open source tool.</li></ul></section><section id="watsonx-ai"><h2>Granite offered on watsonx.ai</h2><p>Although Granite models are largely available on open source platforms such as Hugging Face and Ollama, IBM watsonx.ai platform offers multiple Granite models to use from the platform. Learn what is watsonx.ai and how you can leverage foundation models from the platform. <strong>Note</strong>: You will be able to request an IBM Cloud account with watsonx.ai when the hackathon begins.</p><ul><li><a target="_blank" rel="noopener noreferrer" href="https://video.ibm.com/embed/recorded/134012226">Overview of watsonx.ai&nbsp;</a><br><i>Video ~ 6 minute watch</i><br>Watch this short watsonx.ai introductory video to familiarize yourself with the <a target="_blank" rel="noopener noreferrer" href="https://www.ibm.com/products/watsonx-ai">watsonx.ai</a> platform and its capabilities.</li><li><a target="_blank" rel="noopener noreferrer" href="https://video.ibm.com/embed/recorded/132848516">Overview of watsonx.ai Prompt Lab</a><br><i>Video ~ 3 minute watch</i><br>Watch this short watsonx.ai Prompt Lab introductory video to familiarize yourself with how you can effectively do <a target="_blank" rel="noopener noreferrer" href="https://www.ibm.com/think/topics/prompt-engineering">prompt engineering</a> in <a target="_blank" rel="noopener noreferrer" href="https://www.ibm.com/docs/en/watsonx/saas?topic=solutions-prompt-lab">Prompt Lab</a>.</li><li><a target="_blank" rel="noopener noreferrer" href="https://sn-portals-custom-images.s3.us-east.cloud-object-storage.appdomain.cloud/IBM%20Watsonx.ai%20Introduction.pdf">Presentation - Deep dive into watsonx.ai</a><br><i>Presentation ~ 35 minute read</i><br>Learn core concepts of watsonx.ai and how to work with their features and capabilities.</li></ul></section><section id="ai-agents"><h2>Learn about AI agents</h2><ul><li><a target="_blank" rel="noopener noreferrer" href="https://www.ibm.com/think/topics/ai-agents">What are AI agents?</a><br><i>Article ~ 30 minute read</i><br>Discover and learn about AI agents and how to work with them.</li><li><a target="_blank" rel="noopener noreferrer" href="https://developer.ibm.com/articles/awb-ai-agents-introduction/">Architecture of AI agents</a><br><i>Article ~ 6 minute read</i><br>Learn how AI agents work, how they perceive their environment, process data, make decisions, and execute actions.</li></ul></section><section id="university"><h2>Learning activities for university students</h2><p>Students, skill up to be competitive and prepare for the future of work with <a target="_blank" rel="noopener noreferrer" href="https://skillsbuild.org/college-students/artificial-intelligence">free, industry-relevant courses in Gen AI</a>.</p><ul><li><a target="_blank" rel="noopener noreferrer" href="https://skills.yourlearning.ibm.com/activity/MDL-568?ngo-id=0302">Introduction to Large Language Models</a><br><i>Course ~ 1 hour and 30 minutes</i><br>Explore the capabilities of large language models and their business applications. You'll learn about the different types of IBM Granite models and the unique features that make them ideal for enterprise use. You'll also discover how to craft effective prompts to guide these models and overcome common challenges in their use.</li><li><a target="_blank" rel="noopener noreferrer" href="https://skills.yourlearning.ibm.com/activity/MDL-567?ngo-id=0302">IBM Granite Models for Software Development</a><br><i>Course ~ 1 hour and 30 minutes</i><br>Discover how generative artificial intelligence is rewriting the rules of code creation. You'll learn about IBM Granite models and discover their different types and the benefits they bring to your coding journey. You'll also learn how to use IBM Granite models to troubleshoot code, allowing you to identify and fix issues faster.</li><li><a target="_blank" rel="noopener noreferrer" href="https://skills.yourlearning.ibm.com/activity/MDL-566?ngo-id=0302">Code Generation and Optimization Using IBM Granite</a><br><i>Course ~ 3 hours and 30 minutes</i><br>Explore how to use IBM Granite models to address a variety of programming challenges. You'll learn how to generate efficient, reliable, and adaptable code tailored to your project's needs and optimize the code to improve its performance.</li></ul></section><section id="sdg"><h2>Explore UN SDG 8: Decent work and economic growth</h2><p><strong>Promote productive employment, economic growth, and decent work for all</strong><br>Global economic slowdowns over the past few years have made it harder for individuals to find and maintain decent work. While unemployment rates may decline, two billion workers around the world are in less stable, informal jobs without social protection.<sup>1</sup> One in four young people are not on track to find decent work; they are not in education, employment, or training.<sup>2</sup> This global goal is about finding ways for societies to increase and improve employment opportunities, especially for young people, reduce informal employment and labour market inequality, promote safe and secure working environments, and streamline people's access to financial services.<sup>3</sup> Different countries and communities have their own unique issues to address, so solutions should be relevant to the specific needs of the people they are designed to help. Job creation and support for workers can have a ripple effect to help local economies, so achieving these goals for decent work can in turn ensure sustained and inclusive economic growth for the broader community.</p><p style="margin-bottom:0;"><strong>Learn more</strong></p><ul style="margin-top:0;"><li><sup>1</sup><a target="_blank" rel="noopener noreferrer" href="https://sdgs.un.org/goals/goal8">UN Sustainable Development Goal 8: Decent Work and Economic Growth</a></li><li><sup>2</sup><a target="_blank" rel="noopener noreferrer" href="https://www.un.org/sustainabledevelopment/wp-content/uploads/2023/09/Goal-8_Fast-Facts.pdf">UN: What is Goal 8</a></li><li><sup>3</sup><a target="_blank" rel="noopener noreferrer" href="https://www.un.org/sustainabledevelopment/economic-growth/">UN: Promote inclusive and sustainable economic growth, employment and decent work for all</a></li><li><a target="_blank" rel="noopener noreferrer" href="https://data.unicef.org/sdgs/goal-8-decent-work-economic-growth/">UNICEF data: SDG 8</a></li><li><a target="_blank" rel="noopener noreferrer" href="https://datatopics.worldbank.org/sdgatlas/goal-8-decent-work-and-economic-growth?lang=en">World Bank: Rebuilding economies after COVID-19: Will countries recover?</a></li></ul></section><p><a href="https://compete.04hackathon.watsonx-challenge.ibm.com/competitions/april25/education#"><button class="scrollButton" id="scrollButton" style="display: block;">Return to top</button></a>&nbsp;<script>
+  // Get the scroll button
+  let mybutton = document.getElementById("scrollButton");
+
+  // When the user scrolls down 350px from the top of the document, show the button
+  window.onscroll = function () {
+    scrollFunction();
+  };
+
+  function scrollFunction() {
+    if (
+      document.body.scrollTop > 350 ||
+      document.documentElement.scrollTop > 350
+    ) {
+      mybutton.style.display = "block";
+    } else {
+      mybutton.style.display = "none";
+    }
+  }
+</script></p>
+  </div>
+</div>
+    </main>
+
+    <footer class="mt-16 bg-white" aria-labelledby="footer-heading">
+      <h2 id="footer-heading" class="sr-only">Footer</h2>
+      <div class="footer-body max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:py-16 lg:px-8">
+        <div class="sm:grid sm:grid-cols-2 sm:gap-8 text-center sm:text-left">
+          <div class="flex justify-center sm:justify-start items-center mt-2 gap-8 xl:mt-0">
+            <ul role="list" class="md:grid md:grid-rows-2 md:grid-flow-col md:gap-8 space-y-4 md:space-y-0">
+              <li class="text-base text-gray-400 hover:text-gray-900">
+                <a href="https://04hackathon.watsonx-challenge.ibm.com/privacy">
+                  Privacy Notice
+                </a>
+              </li>
+              <li class="text-base text-gray-400 hover:text-gray-900">
+                <a href="https://04hackathon.watsonx-challenge.ibm.com/legal">
+                  Terms of Service
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div class="space-y-8 xl:col-span-1 justify-self-end self-center mt-8 sm:mt-12 xl:mt-0">
+            
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script type="text/javascript" src="./another_article_files/app-8e0fb0d3d52693062ce0951b6bdee0da.js.download">
+    </script>
+    <script>
+      if (parent !== window) {
+        parent.postMessage('COMPETITION_CREATED', '*');
+      }
+    </script>
+  
+</body><grammarly-desktop-integration data-grammarly-shadow-root="true"><template shadowrootmode="open"><style>
+      div.grammarly-desktop-integration {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select:none;
+        user-select:none;
+      }
+
+      div.grammarly-desktop-integration:before {
+        content: attr(data-content);
+      }
+    </style><div aria-label="grammarly-integration" role="group" tabindex="-1" class="grammarly-desktop-integration" data-content="{&quot;mode&quot;:&quot;full&quot;,&quot;isActive&quot;:true,&quot;isUserDisabled&quot;:false}"></div></template></grammarly-desktop-integration></html>

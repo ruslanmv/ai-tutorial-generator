@@ -115,7 +115,7 @@ ollama pull granite-vision-3.2-2b
 1. **Clone**
 
    ```bash
-   git clone https://github.com/your-org/ai-tutorial-generator.git
+   git clone https://github.com/ruslanmv/ai-tutorial-generator.git
    cd ai-tutorial-generator
    ```
 
@@ -137,7 +137,10 @@ ollama pull granite-vision-3.2-2b
    ```bash
    ollama serve &
    ```
-
+5 **(optional) Testing Ollama**
+```bash
+ollama run granite3.1-dense:8b "Hello, how are you today?"
+ ```
 
 ## 🎯 Usage
 
