@@ -27,7 +27,7 @@ Below is a high-level Mermaid diagram of the six-step workflow:
 
 ```mermaid
 flowchart TD
-    A[Start: Source URI] --> B[SourceRetrieverAgent]
+    A["Start: Source URI"] --> B[SourceRetrieverAgent]
     B --> C[DocumentParserAgent]
     C --> D[ContentAnalyzerAgent]
     D --> E[TutorialStructureAgent]
@@ -35,24 +35,25 @@ flowchart TD
     F --> G[ReviewerRefinerAgent]
     G --> H[Final Markdown Tutorial]
 
-    subgraph Retrieval & Parsing
-      B
-      C
+    subgraph RetrievalParsing["Retrieval & Parsing"]
+        B
+        C
     end
 
-    subgraph Analysis & Structuring
-      D
-      E
+    subgraph AnalysisStructuring["Analysis & Structuring"]
+        D
+        E
     end
 
-    subgraph Generation & Refinement
-      F
-      G
+    subgraph GenerationRefinement["Generation & Refinement"]
+        F
+        G
     end
 
-    style Retrieval & Parsing fill:#eef,stroke:#aac,stroke-width:1px
-    style Analysis & Structuring fill:#efe,stroke:#aca,stroke-width:1px
-    style Generation & Refinement fill:#fee,stroke:#caa,stroke-width:1px
+    style RetrievalParsing fill:#eef,stroke:#aac,stroke-width:1px
+    style AnalysisStructuring fill:#efe,stroke:#aca,stroke-width:1px
+    style GenerationRefinement fill:#fee,stroke:#caa,stroke-width:1px
+
 ````
 
 
