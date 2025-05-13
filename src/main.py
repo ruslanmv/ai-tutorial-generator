@@ -1,146 +1,130 @@
-# src/main.py
+# ──────────────────────────────────────────────────────────────────────────────
+# src/main.py    —  CLI / batch entry‑point for *tutorial_generator*
+# ──────────────────────────────────────────────────────────────────────────────
+"""
+Generate a Markdown tutorial from an **HTML** or **PDF** file.
 
-import sys
+Usage examples
+──────────────
+▶ python -m src.main ./input_docs/my_tutorial.pdf
+▶ python -m src.main ./input_docs/page.html -o ./output/tutorial.md
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import logging
 import os
+import sys
+from pathlib import Path
+from typing import Any, Dict, Optional
+
 from dotenv import load_dotenv
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Debug: print invocation context
-print(f"[DEBUG] __name__={__name__}")
-print(f"[DEBUG] sys.argv={sys.argv}")
-print(f"[DEBUG] BOTTLE_CHILD={os.environ.get('BOTTLE_CHILD')}")
+# ──────────────────────────────────────────────────────────────────────────────
+# Environment & logging
+# ──────────────────────────────────────────────────────────────────────────────
+PROJECT_ROOT: Path = Path(__file__).resolve().parents[1]
+load_dotenv(PROJECT_ROOT / ".env")           # does nothing if the file is absent
 
-# Load environment variables from .env file at project root
-PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
-load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
-
-# Ensure the project root is on sys.path so 'src' can be imported
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
-
-# Attempt to import Bottle for the web UI; fallback to CLI-only mode if unavailable
-try:
-    from bottle import route, run, request, template, static_file, response
-    _BOTTLE_AVAILABLE = True
-    print("[DEBUG] Bottle is available")
-except ImportError:
-    print("Warning: Bottle library not found. Web server functionality will be disabled.")
-    _BOTTLE_AVAILABLE = False
-
-from src.workflows import TutorialGeneratorWorkflow
-
-# --- Configuration from environment variables ---
-USE_MOCK_MODELS    = os.environ.get("USE_MOCKS", "false").lower() == "true"
-DOCLING_OUTPUT_DIR = os.environ.get("DOCLING_OUTPUT_DIR", "./docling_output")
-MODEL_NAME         = os.environ.get("MODEL_NAME", "ollama:granite3.1-dense:8b")
-HOST               = os.environ.get("HOST", "0.0.0.0")
-PORT               = int(os.environ.get("PORT", "8080"))
-DEBUG_MODE         = os.environ.get("DEBUG", "true").lower() == "true"
-
-print(f"[DEBUG] USE_MOCK_MODELS={USE_MOCK_MODELS}")
-print(f"[DEBUG] DOCLING_OUTPUT_DIR={DOCLING_OUTPUT_DIR}")
-print(f"[DEBUG] MODEL_NAME={MODEL_NAME}")
-print(f"[DEBUG] HOST={HOST}, PORT={PORT}, DEBUG_MODE={DEBUG_MODE}")
-
-# Ensure Docling output directory exists
-if DOCLING_OUTPUT_DIR:
-    os.makedirs(DOCLING_OUTPUT_DIR, exist_ok=True)
-    print(f"[INFO] Docling output directory: {DOCLING_OUTPUT_DIR}")
-
-# Instantiate the workflow
-print("[INFO] Initializing TutorialGeneratorWorkflow...")
-workflow = TutorialGeneratorWorkflow(
-    use_mocks=USE_MOCK_MODELS,
-    docling_output_dir=DOCLING_OUTPUT_DIR,
-    model_name=MODEL_NAME,
+logging.basicConfig(
+    level=os.getenv("LOGLEVEL", "INFO").upper(),
+    format="%(asctime)s | %(levelname)-8s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
-print("[INFO] Workflow initialized.")
 
-if _BOTTLE_AVAILABLE:
-    # Serve static files from the top-level 'static/' directory
-    @route('/static/<filepath:path>')
-    def serve_static(filepath):
-        return static_file(filepath, root=os.path.join(PROJECT_ROOT, 'static'))
-
-    # --- Web Routes ---
-    @route("/", method="GET")
-    def index():
-        print("[DEBUG] GET /")
-        try:
-            return template("templates/wizard.html", tutorial_content="")
-        except Exception as e:
-            print(f"[ERROR] loading template: {e}")
-            return f"<h2>Error loading template:</h2><pre>{e}</pre>"
-
-    @route("/generateOutline", method="POST")
-    def generate_outline():
-        print("[DEBUG] POST /generateOutline")
-        data = request.json or {}
-        src = data.get("source", "").strip()
-        if not src:
-            response.status = 400
-            return {"error": "No source provided"}
-
-        raw      = workflow.source_retriever.run(src)
-        blocks   = workflow.parser.run(raw)
-        insights = workflow.analyzer.run(blocks)
-        outline  = workflow.structurer.run(insights)
-        print(f"[DEBUG] Returning outline ({len(outline.page_content)} chars)")
-        return {"outline": outline.page_content}
-
-    @route("/generateDraft", method="POST")
-    def generate_draft():
-        print("[DEBUG] POST /generateDraft")
-        data = request.json or {}
-        src = data.get("source", "").strip()
-        if not src:
-            response.status = 400
-            return {"error": "No source provided"}
-
-        raw      = workflow.source_retriever.run(src)
-        blocks   = workflow.parser.run(raw)
-        insights = workflow.analyzer.run(blocks)
-        outline  = workflow.structurer.run(insights)
-        draft    = workflow.md_generator.run(outline)
-        print(f"[DEBUG] Returning draft ({len(draft.page_content)} chars)")
-        return {"draft": draft.page_content}
-
-    @route("/generate", method="POST")
-    def generate_final():
-        print("[DEBUG] POST /generate")
-        data = request.json or {}
-        src = data.get("source", "").strip()
-        if not src:
-            response.status = 400
-            return {"error": "No source provided"}
-
-        final = workflow.run(src)
-        print(f"[DEBUG] Returning tutorial ({len(final.page_content)} chars)")
-        return {"tutorial": final.page_content}
+# ──────────────────────────────────────────────────────────────────────────────
+# Application imports
+# ──────────────────────────────────────────────────────────────────────────────
+try:
+    # The workflow that runs every agent in sequence
+    from src.workflows import run_workflow        # noqa: WPS433
+except ImportError as exc:                         # pragma: no cover
+    logging.critical("Cannot import workflow: %s", exc)
+    sys.exit(1)
 
 
-def _run_cli_mode():
+# =============================================================================
+# ─── Helpers ─────────────────────────────────────────────────────────────────
+# =============================================================================
+def _positive_int(value: str) -> int:
+    ivalue = int(value)
+    if ivalue <= 0:  # noqa: WPS507
+        raise argparse.ArgumentTypeError(f"{value} is not a positive integer")
+    return ivalue
+
+
+# =============================================================================
+# ─── Async main coroutine ────────────────────────────────────────────────────
+# =============================================================================
+async def _async_main(argv: Optional[list[str]] = None) -> None:        # noqa: WPS231
     """
-    Run the workflow from the command line.
-    Usage: python -m src.main <PDF_or_URL>
+    Parse CLI arguments, launch the tutorial‑generation workflow,
+    and print (or save) the resulting Markdown.
     """
-    src = sys.argv[1]
-    print(f"[CLI] generating tutorial for: {src}")
-    result = workflow.run(src)
-    print("\n--- Generated Markdown Tutorial ---\n")
-    print(result.page_content)
-    print("\n--- End of Tutorial ---\n")
+    parser = argparse.ArgumentParser(
+        prog="tutorial‑generator",
+        description="Generate a Markdown tutorial from an HTML / PDF source file "
+                    "using Granite / Watson‑x LLMs.",
+    )
+    parser.add_argument(
+        "input",
+        help="Path to the source file (HTML or PDF).",
+        type=Path,
+    )
+    parser.add_argument(
+        "-o", "--output",
+        help="Path where the generated Markdown will be written. "
+             "If omitted, the Markdown is printed to stdout.",
+        type=Path,
+        default=None,
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Return the full JSON produced by the workflow instead of plain Markdown.",
+    )
+    args = parser.parse_args(argv)
 
-if __name__ == "__main__":
-    print(f"[DEBUG] __main__ entry, argv={sys.argv}")
-    # If user passed an argument *and* we are not inside the Bottle reloader,
-    # run CLI mode.
-    if len(sys.argv) > 1 and "BOTTLE_CHILD" not in os.environ:
-        _run_cli_mode()
-    elif _BOTTLE_AVAILABLE:
-        print(f"[INFO] Starting web server on http://{HOST}:{PORT}  debug={DEBUG_MODE}")
-        # Turn off the reloader to avoid double‐spawn & rogue CLI runs
-        run(host=HOST, port=PORT, debug=DEBUG_MODE, reloader=False)
+    input_path: Path = args.input.expanduser().resolve()
+    if not input_path.is_file():
+        logging.error("Input file not found: %s", input_path)
+        sys.exit(2)
+
+    logging.info("Processing %s …", input_path)
+    try:
+        result: Dict[str, Any] = await run_workflow(str(input_path))
+    except Exception:                                                   # noqa: BLE001
+        logging.exception("The workflow crashed")
+        sys.exit(3)
+
+    # Either entire JSON or just the "markdown" key
+    output_text: str
+    if args.json:
+        output_text = json.dumps(result, indent=4, ensure_ascii=False)
     else:
-        print("[ERROR] No arguments provided and Bottle is not installed. Exiting.")
-        sys.exit(1)
+        output_text = result.get("markdown", "")
+        if not output_text:
+            logging.warning("No 'markdown' field in workflow result — printing raw JSON.")
+            output_text = json.dumps(result, indent=4, ensure_ascii=False)
+
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(output_text, encoding="utf-8")
+        logging.info("Markdown written to %s", args.output)
+    else:
+        print(output_text)
+
+
+# =============================================================================
+# ─── Module entry‑point for `python -m src.main` ─────────────────────────────
+# =============================================================================
+def main() -> None:                                      # noqa: D401  (simple wrapper)
+    """Synchronous wrapper that launches the async CLI."""
+    asyncio.run(_async_main())
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main()

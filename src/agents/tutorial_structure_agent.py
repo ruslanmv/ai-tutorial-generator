@@ -1,115 +1,119 @@
+# ──────────────────────────────────────────────────────────────────────────────
 # src/agents/tutorial_structure_agent.py
+# ──────────────────────────────────────────────────────────────────────────────
+"""
+TutorialStructureAgent
+======================
 
-import os
-from typing import List
+Takes the list of **insight blocks** produced by `ContentAnalyzerAgent`
+(each has a `metadata["role"]` and `page_content` = 1‑sentence summary) and
+asks the LLM to build a **structured outline** for the final tutorial.
 
-from langchain_core.documents import Document
-from beeai_framework.backend.message import SystemMessage, UserMessage
-from beeai_framework.backend.chat import ChatModel, ChatModelInput, ChatModelOutput
+Output format
+─────────────
+A *JSON array* of sections, where every section is an object:
 
-# --- Mock ChatModel for offline/testing ---
-class _MockChatModel:
-    def __init__(self, model_name: str):
-        self.model_name = model_name
+    {
+        "title": "Section heading",
+        "bullets": ["item 1", "item 2", …],      # optional
+        "children": [ … recursive with same schema … ]   # optional
+    }
 
-    def create(self, inp: ChatModelInput) -> ChatModelOutput:
-        # Simple mock: return a fixed outline
-        class DummyOutput:
-            def __init__(self, text: str):
-                self._text = text
-            def get_text_content(self) -> str:
-                return self._text
+The agent returns the parsed Python list so that downstream components
+(`MarkdownGenerationAgent`) can use it directly.
 
-        return DummyOutput("""# Tutorial Outline
+No mock branches — the call always hits the real ChatModel defined in
+`src.config.llm_model`.
+"""
 
-## Introduction
-- Overview of the main topic based on identified concepts.
+from __future__ import annotations
 
-## Prerequisites
-- List any prerequisites identified.
+import json
+import logging
+from typing import List, Dict, Any
 
-## Steps
-1. Step 1 summary.
-2. Step 2 summary.
-3. Step 3 summary.
+# LangChain document type
+try:
+    from langchain_core.documents import Document
+except ImportError:  # pragma: no cover
+    from langchain.schema import Document  # type: ignore
 
-## Examples
-- Example 1 description.
-- Example 2 description.
+from beeai_framework.backend import ChatModel, UserMessage  # type: ignore
 
-## Conclusion
-- Final thoughts and next steps.
-""")
+from src.config import llm_model
 
+logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# ─── Agent class ─────────────────────────────────────────────────────────────
+# =============================================================================
 class TutorialStructureAgent:
     """
-    Generates a logical Markdown outline for a tutorial based on
-    analyzed content blocks (roles and summaries), using an Ollama Granite
-    or Watsonx.ai chat model.
+    Build a hierarchical tutorial outline from role‑tagged insight blocks.
     """
 
-    def __init__(
-        self,
-        use_mocks: bool = False,
-        model_name: str = "ollama:granite3.1-dense:8b",
-    ):
+    _SYSTEM_PROMPT = (
+        "You are an experienced instructional designer. "
+        "Given a list of analysed content blocks, each tagged with a role "
+        "and a one‑sentence summary, you must design a coherent tutorial "
+        "outline in **JSON**.\n\n"
+        "Output a JSON array where each element may contain:\n"
+        "• \"title\"   : heading text (string, required)\n"
+        "• \"bullets\" : list of short bullet points (optional)\n"
+        "• \"children\": nested list of the same object type (optional)\n\n"
+        "Mandatory top‑level sections (if relevant blocks exist): "
+        "\"Introduction\", \"Prerequisites\", \"Steps\", \"Examples\", \"Conclusion\".\n"
+        "Do NOT include any explanatory text outside the JSON."
+    )
+
+    def __init__(self, model: ChatModel = llm_model) -> None:
+        self.model = model
+
+    # -------------------------------------------------------------------------
+    # Public API
+    # -------------------------------------------------------------------------
+    async def run(self, insights: List[Document]) -> List[Dict[str, Any]]:
         """
-        Args:
-            use_mocks: If True or if no API token, uses a mock model.
-            model_name: BeeAI ChatModel name (e.g. Ollama Granite or Watsonx.ai).
-        """
-        self.use_mocks = use_mocks or not os.environ.get("REPLICATE_API_TOKEN")
-        if self.use_mocks:
-            print("TutorialStructureAgent: using mock ChatModel")
-            self.chat_model = _MockChatModel(model_name)
-        else:
-            print(f"TutorialStructureAgent: loading ChatModel {model_name}")
-            self.chat_model = ChatModel.from_name(model_name)
+        Parameters
+        ----------
+        insights
+            Output of `ContentAnalyzerAgent`.
 
-        # System prompt to guide outline creation
-        self._system = SystemMessage(content="""
-You are an expert tutorial designer. Given the following analyzed content blocks
-(each with a 'role' and summary), create a Markdown tutorial outline with these sections:
-- Introduction (blocks with role 'introduction' or 'concept')
-- Prerequisites (blocks with role 'prerequisite')
-- Steps (blocks with role 'step' or 'code_example')
-- Examples (blocks with role 'example')
-- Conclusion (blocks with role 'conclusion')
-
-Output ONLY the Markdown outline (headings and bullet/list items), without full content.
-""".strip())
-
-    def run(self, insights: List[Document]) -> Document:
-        """
-        Generates the tutorial outline.
-
-        Args:
-            insights: List of Documents from ContentAnalyzerAgent,
-                      each .page_content is the summary and metadata['role'].
-
-        Returns:
-            Document: .page_content is the generated Markdown outline,
-                      metadata={'role': 'outline'} or 'outline_error' if empty.
+        Returns
+        -------
+        list[dict]
+            Parsed outline (empty list on failure).
         """
         if not insights:
-            empty_md = "# Tutorial Outline\n\n_No content available to generate outline._"
-            return Document(page_content=empty_md, metadata={"role": "outline_error"})
+            logger.warning("StructureAgent received empty insight list.")
+            return []
 
-        # Combine insights into a single user message
-        lines = []
-        for idx, doc in enumerate(insights, start=1):
+        prompt = self._build_prompt(insights)
+        logger.debug("Structure prompt length: %s chars", len(prompt))
+
+        response = await self.model.create(messages=[UserMessage(prompt)])
+        content = response.get_text_content()
+
+        try:
+            outline = json.loads(content)
+            assert isinstance(outline, list)  # simple sanity check
+        except Exception as exc:                                 # pragma: no cover
+            logger.error("Failed to parse outline JSON: %s", exc)
+            outline = []
+
+        return outline
+
+    # -------------------------------------------------------------------------
+    # Prompt helper
+    # -------------------------------------------------------------------------
+    @staticmethod
+    def _build_prompt(insights: List[Document]) -> str:
+        bullet_lines = []
+        for idx, doc in enumerate(insights, 1):
             role = doc.metadata.get("role", "unknown")
             summary = doc.page_content.replace("\n", " ").strip()
-            lines.append(f"- Block {idx} (role: {role}): {summary}")
-        user_content = "Analyzed Content Blocks:\n" + "\n".join(lines) + "\n\nMarkdown Outline:"
+            bullet_lines.append(f"{idx}. [{role}] {summary}")
+        blocks_str = "\n".join(bullet_lines)
 
-        user_msg = UserMessage(content=user_content)
-
-        # Call the chat model
-        try:
-            out = self.chat_model.create(ChatModelInput(messages=[self._system, user_msg]))
-            outline_md = out.get_text_content().strip()
-            return Document(page_content=outline_md, metadata={"role": "outline"})
-        except Exception as e:
-            error_md = f"# Outline Generation Error\n\nAn error occurred: {e}"
-            return Document(page_content=error_md, metadata={"role": "outline_error"})
+        return f"{TutorialStructureAgent._SYSTEM_PROMPT}\n\nBlocks:\n{blocks_str}"

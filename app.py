@@ -1,102 +1,161 @@
-# app.py
+# ──────────────────────────────────────────────────────────────────────────────
+# app.py  —  Flask front‑end for *tutorial_generator*
+# ──────────────────────────────────────────────────────────────────────────────
+"""
+Endpoints
+─────────
+GET   /            → redirect to /wizard
+GET   /wizard      → upload form (HTML)
+POST  /generate    → accepts URL *or* uploaded file, returns JSON
+GET   /uploads/<f> → serve uploaded files back (dev / debug)
+GET   /health      → liveness probe (“OK”)
 
+Run locally:
+
+    $ python app.py
+or with Flask’s CLI:
+
+    $ export FLASK_APP=app.py
+    $ flask run
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
 import os
-from flask import Flask, render_template, request, jsonify
-from src.workflows import TutorialGeneratorWorkflow
+import tempfile
+from pathlib import Path
+from typing import Set
 
-# Configuration from environment variables
-USE_MOCKS         = os.environ.get("USE_MOCKS", "false").lower() == "true"
-DOCLING_OUTPUT_DIR = os.environ.get("DOCLING_OUTPUT_DIR", "./docling_output")
-MODEL_NAME         = os.environ.get("MODEL_NAME", "ollama:granite3.1-dense:8b")
-PORT               = int(os.environ.get("PORT", "8080"))
-DEBUG              = os.environ.get("DEBUG", "false").lower() == "true"
-
-# Ensure Docling output directory exists
-if DOCLING_OUTPUT_DIR:
-    os.makedirs(DOCLING_OUTPUT_DIR, exist_ok=True)
-    print(f"Docling output directory: {DOCLING_OUTPUT_DIR}")
-
-# Instantiate the workflow once
-print("Initializing TutorialGeneratorWorkflow...")
-workflow = TutorialGeneratorWorkflow(
-    use_mocks=USE_MOCKS,
-    docling_output_dir=DOCLING_OUTPUT_DIR,
-    model_name=MODEL_NAME,
+from flask import (
+    Flask,
+    Response,
+    flash,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    url_for,
+    jsonify,
 )
-print("Workflow initialized.")
+from werkzeug.utils import secure_filename
 
-# Create Flask app
+# ──────────────────────────────────────────────────────────────────────────────
+# Local imports
+# ──────────────────────────────────────────────────────────────────────────────
+from src.workflows import run_workflow
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Logging (visible when you run `python app.py`)
+# ──────────────────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=os.getenv("LOGLEVEL", "INFO").upper(),
+    format="%(asctime)s | %(levelname)-8s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger(__name__)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Configuration
+# ──────────────────────────────────────────────────────────────────────────────
+UPLOAD_FOLDER: Path = Path(tempfile.gettempdir()) / "tg_uploads"
+ALLOWED_EXTENSIONS: Set[str] = {"pdf", "html", "htm"}
+
+UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
+
 app = Flask(__name__, static_folder="static", template_folder="templates")
+app.config["UPLOAD_FOLDER"] = str(UPLOAD_FOLDER)
+app.config["MAX_CONTENT_LENGTH"] = 40 * 1024 * 1024  # 40 MiB
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev‑secret")
+
+# =============================================================================
+# Helpers
+# =============================================================================
+def _allowed_file(name: str) -> bool:
+    return "." in name and name.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route("/", methods=["GET"])
-def index():
-    """
-    Serve the wizard UI (templates/wizard.html).
-    """
+# =============================================================================
+# Routes
+# =============================================================================
+@app.get("/")
+def _root() -> Response:
+    return redirect(url_for("wizard"))
+
+
+@app.get("/wizard")
+def wizard() -> Response:
+    """Serve the single‑page wizard."""
     return render_template("wizard.html")
 
 
-@app.route("/generateOutline", methods=["POST"])
-def generate_outline():
+# --------------------------------------------------------------------------
+# NEW unified endpoint: URL **or** file upload  →  JSON {outline, markdown}
+# --------------------------------------------------------------------------
+@app.post("/generate")
+def generate() -> Response:
     """
-    Step 1 → Outline:
-    retrieve, parse, analyze, then structure.
-    Expects JSON: { "source": "<PDF_or_URL>" }
-    Returns JSON: { "outline": "<Markdown outline>" }
+    Accepts:
+    • multipart/form‑data with a file field named ‘file’
+    • application/json  { "source": "<url>" }
+
+    Returns
+    -------
+    JSON { "outline": [...], "markdown": "…"}
     """
-    data = request.get_json() or {}
-    source = data.get("source", "").strip()
-    if not source:
-        return jsonify({"error": "No source provided"}), 400
+    src_file = request.files.get("file")
+    src_url = (request.json or {}).get("source") if not src_file else None
 
-    raw_doc   = workflow.source_retriever.run(source)
-    blocks    = workflow.parser.run(raw_doc)
-    insights  = workflow.analyzer.run(blocks)
-    outline   = workflow.structurer.run(insights)
+    if not src_file and not src_url:
+        logger.info("No source provided.")
+        return jsonify(error="No source provided"), 400
 
-    return jsonify({"outline": outline.page_content})
+    # ── 1. Determine source path / URL
+    if src_file:
+        if src_file.filename == "" or not _allowed_file(src_file.filename):
+            return jsonify(error="Unsupported or empty file"), 400
 
+        filename = secure_filename(src_file.filename)
+        save_path = Path(app.config["UPLOAD_FOLDER"]) / filename
+        src_file.save(save_path)
+        src = str(save_path)
+        logger.info("Uploaded file saved at %s", save_path)
+    else:
+        src = src_url.strip()
+        logger.info("Processing URL %s", src)
 
-@app.route("/generateDraft", methods=["POST"])
-def generate_draft():
-    """
-    Step 2 → Draft:
-    retrieve, parse, analyze, structure, then draft.
-    Expects JSON: { "source": "<PDF_or_URL>" }
-    Returns JSON: { "draft": "<Markdown draft>" }
-    """
-    data = request.get_json() or {}
-    source = data.get("source", "").strip()
-    if not source:
-        return jsonify({"error": "No source provided"}), 400
+    # ── 2. Run the workflow (blocking)
+    try:
+        result = asyncio.run(run_workflow(src))
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Workflow failed")
+        return jsonify(error=str(exc)), 500
 
-    raw_doc   = workflow.source_retriever.run(source)
-    blocks    = workflow.parser.run(raw_doc)
-    insights  = workflow.analyzer.run(blocks)
-    outline   = workflow.structurer.run(insights)
-    draft_doc = workflow.md_generator.run(outline, insights)
-
-    return jsonify({"draft": draft_doc.page_content})
-
-
-@app.route("/generate", methods=["POST"])
-def generate_final():
-    """
-    Step 3 → Final:
-    full workflow including optional refine.
-    Expects JSON: { "source": "<PDF_or_URL>" }
-    Returns JSON: { "tutorial": "<Final Markdown tutorial>" }
-    """
-    data = request.get_json() or {}
-    source = data.get("source", "").strip()
-    if not source:
-        return jsonify({"error": "No source provided"}), 400
-
-    final_doc = workflow.run(source)
-    return jsonify({"tutorial": final_doc.page_content})
+    return jsonify(
+        outline=result.get("outline", []),
+        markdown=result.get("markdown", ""),
+    )
 
 
-if __name__ == "__main__":
-    print(f"Starting Flask server on http://0.0.0.0:{PORT}  debug={DEBUG}  use_mocks={USE_MOCKS}")
-    app.run(host="0.0.0.0", port=PORT, debug=DEBUG)
+# --------------------------------------------------------------------------
+# Serve raw uploaded files back (convenient when developing)
+# --------------------------------------------------------------------------
+@app.get("/uploads/<path:filename>")
+def uploaded_file(filename: str) -> Response:
+    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+
+
+@app.get("/health")
+def health() -> str:
+    return "OK"
+
+
+# =============================================================================
+# Stand‑alone launch
+# =============================================================================
+if __name__ == "__main__":  # pragma: no cover
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8000"))
+    debug = os.getenv("FLASK_DEBUG", "0") == "1"
+    app.run(host=host, port=port, debug=debug)

@@ -1,174 +1,180 @@
-#src/agents/source_retriever_agent.py
+# ──────────────────────────────────────────────────────────────────────────────
+# src/agents/source_retriever_agent.py
+# ──────────────────────────────────────────────────────────────────────────────
+"""
+SourceRetrieverAgent
+====================
+
+Fetches raw content from **either**
+
+* a URL (`http://…`, `https://…`) **or**
+* a local filesystem path.
+
+Behaviour
+─────────
+• If the payload is a PDF it is saved to a temporary file and the
+  **path** is returned in `Document.page_content`.  
+• If the payload is HTML or plain text the **text** itself is returned.  
+• All network calls use a retry strategy for transient failures.  
+• Any temporary PDF files are deleted automatically on interpreter exit.
+"""
+
+from __future__ import annotations
+
+import atexit
+import logging
 import os
 import tempfile
+from pathlib import Path
+from typing import Set
+
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from langchain_core.documents import Document
-import atexit # Import for cleanup registration
 
+# LangChain document type (fallback for older versions)
+try:
+    from langchain_core.documents import Document
+except ImportError:  # pragma: no cover
+    from langchain.schema import Document  # type: ignore
+
+logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# ─── Constants & helpers ─────────────────────────────────────────────────────
+# =============================================================================
 class InputFormat:
     PDF = "pdf"
     HTML = "html"
     UNKNOWN = "unknown"
 
-# --- Added: Keep track of temp files to delete on exit ---
-temp_files_to_delete = set()
 
-def cleanup_temp_files():
-    """Function to delete registered temporary files."""
-    print(f"[Cleanup] Deleting {len(temp_files_to_delete)} temporary files...")
-    for f_path in list(temp_files_to_delete): # Iterate over a copy
+_TEMP_FILES: Set[str] = set()
+
+
+def _cleanup_temp_files() -> None:
+    """Delete temporary files saved during execution."""
+    for fp in list(_TEMP_FILES):
         try:
-            os.remove(f_path)
-            print(f"[Cleanup] Deleted: {f_path}")
-            temp_files_to_delete.remove(f_path)
-        except OSError as e:
-            print(f"[Cleanup][WARNING] Failed to delete {f_path}: {e}")
-        except Exception as e:
-            print(f"[Cleanup][ERROR] Unexpected error deleting {f_path}: {e}")
-
-# Register the cleanup function to run at script exit
-atexit.register(cleanup_temp_files)
-# --- End Added ---
+            os.remove(fp)
+            logger.debug("Deleted temp file %s", fp)
+            _TEMP_FILES.discard(fp)
+        except OSError as exc:                           # pragma: no cover
+            logger.warning("Failed to delete temp file %s: %s", fp, exc)
 
 
+atexit.register(_cleanup_temp_files)
+
+
+# =============================================================================
+# ─── Agent class ─────────────────────────────────────────────────────────────
+# =============================================================================
 class SourceRetrieverAgent:
-    """
-    Fetches raw content from a URL or local file path.
-    PDF content fetched from URLs is written to a temp file and the path returned.
-    HTML/text is returned as a string.
-    Local PDF paths are returned directly.
-    """
-    def __init__(self):
-        # retry for transient network errors
+    """Retrieve remote or local sources and wrap them in a `Document`."""
+
+    def __init__(self) -> None:
         self.session = requests.Session()
-        retries = Retry(total=3, backoff_factor=1,
-                        status_forcelist=[429, 500, 502, 503, 504],
-                        allowed_methods=["GET"]) # Use allowed_methods for newer urllib3
+
+        retries = Retry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=(429, 500, 502, 503, 504),
+            allowed_methods=("GET",),
+        )
         adapter = HTTPAdapter(max_retries=retries)
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
-        print("[SourceRetriever] Initialized with retry strategy.")
 
+        logger.debug("SourceRetrieverAgent initialised with retry strategy.")
+
+    # -------------------------------------------------------------------------
+    # Public API
+    # -------------------------------------------------------------------------
     def run(self, source: str) -> Document:
-        print(f"[SourceRetriever] run() start for '{source}'")
-        is_url = source.lower().startswith(("http://", "https://"))
-        fmt = InputFormat.UNKNOWN
-        content = None
-        created_temp_file = None # Track temp file created in this run
+        """
+        Parameters
+        ----------
+        source
+            URL or local file path.
 
-        if is_url:
-            print(f"[SourceRetriever] Input is URL: {source}")
-            try:
-                print(f"[SourceRetriever] Fetching URL...")
-                # Added stream=True to check content type before loading all content
-                resp = self.session.get(source, timeout=30, stream=True)
-                print(f"[SourceRetriever] HTTP {resp.status_code}")
-                resp.raise_for_status() # Raise exception for bad status codes
+        Returns
+        -------
+        Document
+            • `page_content` = text content **or** PDF path  
+            • `metadata["format"]` = "pdf" | "html" | "unknown"  
+            • `metadata["source"]` = original input string
+        """
+        if source.lower().startswith(("http://", "https://")):
+            return self._fetch_url(source)
 
-                ctype = resp.headers.get("Content-Type", "").lower()
-                print(f"[SourceRetriever] Content-Type: {ctype}")
+        path = Path(source).expanduser()
+        if path.is_file():
+            return self._read_local(path)
 
-                # Check for PDF based on Content-Type first
-                if "application/pdf" in ctype:
-                    fmt = InputFormat.PDF
-                    print(f"[SourceRetriever] Detected PDF via Content-Type.")
-                    # Now read the content
-                    body = resp.content # Read the full content
-                    # Write PDF to temp file
-                    # Use 'with' statement for cleaner handling, though delete=False is needed
-                    tf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", mode='wb') # Write bytes
-                    created_temp_file = tf.name # Store name for potential cleanup registration
-                    tf.write(body)
-                    tf.close() # Must close before returning the path
-                    content = tf.name # Content is the PATH to the temp file
-                    print(f"[SourceRetriever] PDF saved to temporary file: {content}")
-                    # --- Added: Register file for cleanup ---
-                    temp_files_to_delete.add(created_temp_file)
-                    print(f"[SourceRetriever] Registered {content} for cleanup on exit.")
-                    # --- End Added ---
-                else:
-                    # If not PDF by Content-Type, read as text (could still be PDF by magic bytes below)
-                    body_bytes = resp.content # Read the full content
-                    # Optional: Check magic bytes if Content-Type wasn't PDF
-                    if body_bytes.startswith(b"%PDF-"):
-                         fmt = InputFormat.PDF
-                         print(f"[SourceRetriever] Detected PDF via magic bytes (despite Content-Type: {ctype}).")
-                         tf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", mode='wb')
-                         created_temp_file = tf.name
-                         tf.write(body_bytes)
-                         tf.close()
-                         content = tf.name
-                         print(f"[SourceRetriever] PDF saved to temporary file: {content}")
-                         temp_files_to_delete.add(created_temp_file)
-                         print(f"[SourceRetriever] Registered {content} for cleanup on exit.")
-                    else:
-                         # Assume HTML/Text otherwise
-                         fmt = InputFormat.HTML
-                         # Decode using encoding from headers, fallback to utf-8 ignore
-                         content = resp.content.decode(resp.encoding or 'utf-8', errors='ignore')
-                         print(f"[SourceRetriever] Assuming HTML/Text content retrieved (len={len(content)})")
+        raise ValueError(f"Input '{source}' is neither a URL nor an existing file.")
 
-            except requests.exceptions.RequestException as e:
-                print(f"[SourceRetriever][ERROR] HTTP request failed: {e}")
-                # Re-raise or handle as appropriate for your workflow
-                raise ValueError(f"Failed to retrieve source URL: {source}") from e
-            except Exception as e:
-                print(f"[SourceRetriever][ERROR] Unexpected error during URL fetch: {e}")
-                raise # Re-raise unexpected errors
+    # -------------------------------------------------------------------------
+    # Internal helpers
+    # -------------------------------------------------------------------------
+    def _fetch_url(self, url: str) -> Document:
+        logger.info("Fetching URL %s", url)
+        try:
+            resp = self.session.get(url, timeout=30, stream=True)
+            resp.raise_for_status()
+        except requests.RequestException as exc:
+            logger.error("HTTP request failed: %s", exc)
+            raise ValueError(f"Failed to retrieve URL: {url}") from exc
 
-        elif os.path.isfile(source):
-            print(f"[SourceRetriever] Input is local file path: {source}")
-            if source.lower().endswith(".pdf"):
-                fmt = InputFormat.PDF
-                # Content is the existing PATH, no temp file needed
-                content = source
-                print(f"[SourceRetriever] Using existing local PDF path.")
-            else:
-                # Assume text/html for other local files
-                fmt = InputFormat.HTML # Assume HTML/Text initially
-                print(f"[SourceRetriever] Reading local text/HTML file.")
-                try:
-                    # Use 'with' for cleaner file handling
-                    with open(source, 'r', encoding="utf-8") as f:
-                        content = f.read()
-                    print(f"[SourceRetriever] Successfully read text file (len={len(content)})")
-                except UnicodeDecodeError:
-                    print(f"[SourceRetriever][WARNING] UTF-8 decode failed, trying fallback read...")
-                    try:
-                        with open(source, "rb") as f: # Read as bytes first
-                           byte_content = f.read()
-                        # Check for PDF magic bytes even if extension wasn't .pdf
-                        if byte_content.startswith(b"%PDF-"):
-                            fmt = InputFormat.PDF
-                            content = source # It's a PDF, return the original path
-                            print(f"[SourceRetriever] Detected PDF via magic bytes in local file.")
-                        else:
-                            # Fallback decode for non-PDF binary/incorrectly encoded files
-                            content = byte_content.decode("utf-8", "ignore")
-                            fmt = InputFormat.UNKNOWN # Mark as unknown format after fallback decode
-                            print(f"[SourceRetriever] Fallback read as bytes->string (len={len(content)})")
-                    except Exception as e:
-                         print(f"[SourceRetriever][ERROR] Failed to read local file {source}: {e}")
-                         raise ValueError(f"Failed to read local file: {source}") from e
-                except Exception as e:
-                    print(f"[SourceRetriever][ERROR] Failed to read local file {source}: {e}")
-                    raise ValueError(f"Failed to read local file: {source}") from e
+        ctype = resp.headers.get("Content-Type", "").lower()
+        body  = resp.content
+
+        # --- PDF detection ----------------------------------------------------
+        if "application/pdf" in ctype or body.startswith(b"%PDF-"):
+            fmt = InputFormat.PDF
+            temp_fp = self._write_temp_pdf(body)
+            content = temp_fp
+        # --- Assume HTML/text -------------------------------------------------
         else:
-            msg = f"[SourceRetriever][ERROR] Input source '{source}' is not a valid URL or existing local file."
-            print(msg)
-            raise ValueError(msg)
+            fmt = InputFormat.HTML
+            encoding = resp.encoding or "utf-8"
+            try:
+                content = body.decode(encoding, errors="ignore")
+            except LookupError:                               # pragma: no cover
+                content = body.decode("utf-8", errors="ignore")
 
-        # Ensure content is not None before creating Document
-        if content is None:
-             msg = f"[SourceRetriever][ERROR] Could not retrieve content for source: {source}"
-             print(msg)
-             raise ValueError(msg)
+        return Document(page_content=content, metadata={"format": fmt, "source": url})
 
-        print(f"[SourceRetriever] Returning Document(format='{fmt}', content_type={type(content)}, source='{source}')")
-        # page_content is now guaranteed to be a string (either text content or a file path)
-        return Document(
-            page_content=content,
-            metadata={"format": fmt, "source": source}
-        )
+    def _read_local(self, path: Path) -> Document:
+        logger.info("Reading local file %s", path)
+        fmt = InputFormat.UNKNOWN
+
+        if path.suffix.lower() == ".pdf":
+            fmt = InputFormat.PDF
+            content = str(path)
+        else:
+            try:
+                content = path.read_text(encoding="utf-8")
+                fmt = InputFormat.HTML
+            except UnicodeDecodeError:
+                # Maybe it's a PDF with wrong extension?
+                raw = path.read_bytes()
+                if raw.startswith(b"%PDF-"):
+                    fmt = InputFormat.PDF
+                    content = str(path)
+                else:                                           # pragma: no cover
+                    content = raw.decode("utf-8", "ignore")
+
+        return Document(page_content=content, metadata={"format": fmt, "source": str(path)})
+
+    # -------------------------------------------------------------------------
+    # Utility
+    # -------------------------------------------------------------------------
+    @staticmethod
+    def _write_temp_pdf(data: bytes) -> str:
+        tf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", mode="wb")
+        tf.write(data)
+        tf.close()
+        _TEMP_FILES.add(tf.name)
+        logger.debug("Saved PDF to temp file %s", tf.name)
+        return tf.name

@@ -1,229 +1,176 @@
-# AI Tutorial Generator
+# AI Tutorial Generator
 
-**Automatically generate a step-by-step Markdown tutorial from any PDF or web page.**  
-Powered by a modular “Agent” architecture (beeai-framework + Docling + Ollama/Granite models).
-
-
-## Introduction
-
-The **AI Tutorial Generator** transforms any source document—be it a PDF report, academic paper, or web page—into a polished, step-by-step tutorial in Markdown format. Under the hood, it uses a **multi-agent system** built on the [beeai-framework], a lightweight Python library for defining “Agents” plus [Docling] for robust document parsing, and Granite models (via Ollama or Replicate).
-
-### What is the beeai-framework?
-
-[`beeai-framework`] is a Python toolkit designed to simplify agentic architectures:
-
-- **Agent**: A class with a single `run()` method that takes inputs and returns standardized `Document` objects.
-- **Document**: A container for `page_content` + `metadata`, passed between agents.
-- **Workflow**: Orchestrates a sequence of agents, handling errors and data flow.
-- **ChatModel**: Integrates large language model calls (Ollama, Watsonx.ai) with prompt templates.
-
-This pattern keeps logic modular, testable, and extensible.
-
-
-
-## Architecture & Flow
-
-Below is a high-level Mermaid diagram of the six-step workflow:
-
-```mermaid
-flowchart TD
-    A["Start: Source URI"] --> B[SourceRetrieverAgent]
-    B --> C[DocumentParserAgent]
-    C --> D[ContentAnalyzerAgent]
-    D --> E[TutorialStructureAgent]
-    E --> F[MarkdownGenerationAgent]
-    F --> G[ReviewerRefinerAgent]
-    G --> H[Final Markdown Tutorial]
-
-    subgraph RetrievalParsing["Retrieval & Parsing"]
-        B
-        C
-    end
-
-    subgraph AnalysisStructuring["Analysis & Structuring"]
-        D
-        E
-    end
-
-    subgraph GenerationRefinement["Generation & Refinement"]
-        F
-        G
-    end
-
-    style RetrievalParsing fill:#eef,stroke:#aac,stroke-width:1px
-    style AnalysisStructuring fill:#efe,stroke:#aca,stroke-width:1px
-    style GenerationRefinement fill:#fee,stroke:#caa,stroke-width:1px
-
-````
-
-
-
-## ✨ Features
-
-* **SourceRetrieverAgent**
-  Fetches raw PDF bytes or HTML text from a URL or local file.
-
-* **DocumentParserAgent**
-  Leverages **Docling** to extract text blocks, images, tables, and code snippets.
-
-* **ContentAnalyzerAgent**
-  Classifies each block’s role (introduction, step, concept, etc.) using Granite via Ollama or Replicate, and generates image captions.
-
-* **TutorialStructureAgent**
-  Crafts a clean Markdown outline (Introduction, Prerequisites, Steps, Examples, Conclusion).
-
-* **MarkdownGenerationAgent**
-  Fills the outline with text, code fences, and image descriptions to produce a complete tutorial.
-
-* **ReviewerRefinerAgent** (optional)
-  Performs a final pass to polish language, fix formatting, and ensure clarity.
-
-* **CLI & Web UI**
-
-  * **CLI**: Generate tutorials in your terminal (`python src/main.py …`).
-  * **Web UI**: A 4-step Flask wizard (`python app.py`).
-
-
-
-## ⚙️ Prerequisites
-
-* **Python 3.12+**
-* **beeai-framework**
-* **Docling**
-* **Ollama** (or **WatsonX API token** for live Granite models)
-* **Flask**
-
-Set environment variables:
-
-```bash
-export USE_MOCKS=false                    # true to force mock mode
-export DOCLING_OUTPUT_DIR=./docling_output
-export MODEL_NAME=ollama:granite3.1-dense:8b
-```
-
-For Ollama local inference:
-
-```bash
-brew install ollama
-ollama pull granite3.1-dense:8b
-ollama pull granite3.2-vision:2b
-```
-
-
-## 📥 Installation
-
-1. **Clone**
-
-   ```bash
-   git clone https://github.com/ruslanmv/ai-tutorial-generator.git
-   cd ai-tutorial-generator
-   ```
-
-2. **Virtualenv**
-
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate
-   ```
-
-3. **Dependencies**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **(Optional) Start Ollama**
-
-   ```bash
-   ollama serve &
-   ```
-5 **(optional) Testing Ollama**
-```bash
-ollama run granite3.1-dense:8b "Hello, how are you today?"
- ```
-
-## 🎯 Usage
-
-### CLI Mode
-
-```bash
-python src/main.py https://example.com/guide.pdf > tutorial.md
-```
-python src/main.py input_docs/my_tutorial.pdf
-### Web UI Mode
-
-```bash
-python app.py
-# → Open http://0.0.0.0:8080 in your browser
-```
-
-Follow the 4-step wizard to input source, preview outline, review draft, and download final Markdown.
+**Turn any PDF or web page into a polished, step‑by‑step Markdown tutorial — automatically.**
+Built with a modular *agent* architecture powered by [beeai‑framework] + [Docling] and Granite LLMs (IBM Watson x / local Ollama).
 
 ---
 
-## 📝 Example
+## 1 · How it works  ⚙️
 
-**CLI**
+1. **SourceRetrieverAgent** – downloads a URL or reads a local file.
+2. **DocumentParserAgent** – parses PDF / HTML into text chunks with *Docling*.
+3. **ContentAnalyzerAgent** – classifies every chunk (title, step, code…) and writes a one‑sentence English summary.
+4. **TutorialStructureAgent** – designs a coherent outline (JSON).
+5. **MarkdownGenerationAgent** – expands the outline into a full Markdown tutorial.
+6. **ReviewerRefinerAgent** – final language & style polish.
 
-```bash
-python src/main.py intro-to-ml.pdf > ml-tutorial.md
+```mermaid
+flowchart TD
+    A["URL or File"] --> B[Source Retriever]
+    B --> C[Docling Parser]
+    C --> D[Content Analyzer]
+    D --> E[Structure Designer]
+    E --> F[Markdown Generator]
+    F --> G[Reviewer & Refiner]
+    G --> H["✓ Finished Markdown"]
 ```
 
-**Web**
+---
+
+## 2 · Features  ✨
+
+| Stage                     | What it does                                                                                        |
+| ------------------------- | --------------------------------------------------------------------------------------------------- |
+| `SourceRetrieverAgent`    | Resilient HTTP fetch with retries, auto‑saves PDFs to a temp file and cleans them up on exit.       |
+| `DocumentParserAgent`     | Uses Docling’s `DocumentConverter` + `HybridChunker` for consistent PDF / HTML parsing.             |
+| `ContentAnalyzerAgent`    | Calls Granite (Watson x or Ollama) to tag each block’s role and write a 1‑sentence English summary. |
+| `TutorialStructureAgent`  | Produces a hierarchical outline in **JSON** (Introduction → Steps → Examples → Conclusion).         |
+| `MarkdownGenerationAgent` | Fills the outline with explanations, tips, and fenced code blocks.                                  |
+| `ReviewerRefinerAgent`    | Single LLM pass to smooth flow, fix grammar, and ensure proper Markdown.                            |
+| **CLI**                   | `python -m src.main <source>` → prints Markdown / JSON.                                             |
+| **Web UI**                | Minimal Flask app (`app.py`) with an upload wizard.                                                 |
+
+---
+
+## 3 · Installation 📦
+
+```bash
+# 1 Clone
+git clone https://github.com/your-org/ai-tutorial-generator.git
+cd ai-tutorial-generator
+
+# 2 Python env
+python -m venv .venv && source .venv/bin/activate
+
+# 3 Dependencies
+pip install -r requirements.txt
+```
+
+### Optional · Local Ollama backend
+
+```bash
+brew install ollama        # or visit https://ollama.ai
+ollama pull granite:8b-instruct-q4_K_M
+ollama serve &
+```
+
+---
+
+## 4 · Configuration 🗝️
+
+All credentials live in `.env` (a template is provided at `.env.sample`).
+
+```dotenv
+# Choose the LLM backend:  watsonx   |   ollama
+LLM_BACKEND=ollama
+
+# Watson x (needed if LLM_BACKEND=watsonx)
+WATSONX_PROJECT_ID=***
+WATSONX_API_KEY=***
+WATSONX_API_URL=https://bam-api.res.ibm.com/v2/text
+
+# Ollama (needed if LLM_BACKEND=ollama)
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL_ID=granite:8b-instruct-q4_K_M
+
+# Optional tuning
+LLM_MAX_QPS=8                  # global request limiter
+DAYS_PER_MONTH=30.4375
+```
+
+> **Tip:** when `LLM_BACKEND=ollama` no external network calls are made — ideal for completely offline use.
+
+---
+
+## 5 · Usage 🚀
+
+### CLI
+
+```bash
+python -m src.main ./docs/sample.pdf          # prints Markdown to stdout
+python -m src.main https://example.com/page   -o tutorial.md   # save to file
+python -m src.main page.html --json           # return full JSON payload
+```
+
+### Flask Web UI
 
 ```bash
 python app.py
-# visit http://localhost:8080
+# open http://localhost:8000 in your browser
 ```
 
+Upload a file, wait a few seconds, and copy / download the generated tutorial.
 
+---
 
-## 📂 Project Tree
+## 6 · Example 🧑‍💻
+
+```bash
+python -m src.main https://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf \
+       -o sample-tutorial.md
+code sample-tutorial.md        # open in your editor
+```
+
+---
+
+## 7 · Project Tree 🌲
 
 ```
-ai-tutorial-generator/
-├── .gitignore
-├── LICENSE
-├── README.md
+tutorial_generator/
+├── README.md                ← you are here
+├── .env.sample
 ├── requirements.txt
-├── app.py
-├── templates/
-│   └── wizard.html
-├── static/
-│   ├── app.js
-│   └── style.css
+├── app.py                   ← Flask front‑end
+│
 ├── src/
-│   ├── __main__.py
-│   ├── main.py
-│   ├── workflows.py
-│   └── agents/
-│       ├── source_retriever_agent.py
-│       ├── document_parser_agent.py
-│       ├── content_analyzer_agent.py
-│       ├── tutorial_structure_agent.py
-│       ├── markdown_generation_agent.py
-│       └── reviewer_refiner_agent.py
-└── docling_output/
+│   ├── config.py            ← single LLM “singleton”
+│   ├── main.py              ← CLI entry‑point
+│   ├── workflows.py         ← end‑to‑end orchestration
+│   ├── agents/
+│   │   ├── content_analyzer_agent.py
+│   │   ├── document_parser_agent.py
+│   │   ├── markdown_generation_agent.py
+│   │   ├── reviewer_refiner_agent.py
+│   │   ├── source_retriever_agent.py
+│   │   └── tutorial_structure_agent.py
+│   └── utils/
+│       └── rate_limit.py
+└── templates/  static/  docs/ …
 ```
 
+---
 
+## 8 · Troubleshooting 🛠️
 
-## 🛠 Troubleshooting & Tips
+| Symptom                            | Fix                                                                               |
+| ---------------------------------- | --------------------------------------------------------------------------------- |
+| **`ImportError: docling`**         | `pip install docling`                                                             |
+| **`FileNotFoundError`** for `.env` | Copy `.env.sample` → `.env` and fill in credentials.                              |
+| Model returns *empty outline*      | Check `llm_model` in `.env` — Granite 8B works well; smaller models may struggle. |
+| Large PDF very slow                | Split the PDF or increase `OLLAMA_NUM_CTX`.                                       |
+| Out‑of‑memory on Ollama            | Use a quantised model (`…q4_K_M`).                                                |
 
-* **Mock Mode**: Agents auto‐fall back to mocks if no `REPLICATE_API_TOKEN`.
-* **Docling**: Ensure `docling_output` is writable.
-* **Ollama**: Increase context size with `--num_ctx` for large docs.
-* **Performance**: Large PDFs/images will take longer—consider splitting.
+---
 
+## 9 · Contributing 🤝
 
-## 🤝 Contributing
+* Fork → feature branch → pull request.
+* Please include unit tests where practical (pytest).
+* Join the discussion in Issues for ideas & feedback.
 
-Contributions welcome! Fork, branch, PR, and open issues for bugs or features.
+---
 
+Made with ☕ and open‑source tools. Enjoy creating tutorials the easy way!
 
-
-Thank you for using **AI Tutorial Generator**!
-We hope this multi-agent approach streamlines your tutorial creation.
-
-[beeai-framework]: https://github.com/beeai/beeai-framework
+[beeai‑framework]: https://github.com/beeai/beeai-framework
 [Docling]: https://github.com/docling/docling

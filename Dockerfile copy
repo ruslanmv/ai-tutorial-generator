@@ -1,12 +1,12 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # Dockerfile · AI Tutorial Generator
 # ──────────────────────────────────────────────────────────────────────────────
-# This image can run **both**:
-#   • the Flask web‑app, and
-#   • a local Ollama daemon (CLI is installed via official installer)
+# Build a lean container that can:
+#   • parse PDFs/HTML with Docling   (needs poppler / ghostscript)
+#   • talk to an external LLM (Watson x) or a local Ollama daemon
 #
-# If LLM_BACKEND=ollama the app will auto‑start the daemon when the
-# container boots and auto‑pull the requested model (when OLLAMA_AUTO_PULL=1).
+# The image **does not** run Ollama itself; point OLLAMA_BASE_URL at
+# another container or host running `ollama serve`.
 # ------------------------------------------------------------------------------
 
 FROM python:3.12-slim AS runtime
@@ -19,30 +19,22 @@ ENV PYTHONUNBUFFERED=1 \
     DOCLING_OUTPUT_DIR=/app/docling_output \
     FLASK_ENV=production \
     FLASK_APP=app.py \
-    PORT=8000 \
-    LLM_BACKEND=${LLM_BACKEND:-ollama} \
-    OLLAMA_BASE_URL=http://localhost:11434 \
-    OLLAMA_AUTO_PULL=${OLLAMA_AUTO_PULL:-1}
+    PORT=8000                       \
+    LLM_BACKEND=${LLM_BACKEND:-ollama}
 
 # ──────────────────────────────────────────────────────────────────────────────
 # System dependencies
-#   • build-essential   – build wheels
-#   • poppler‑utils     – pdfimages / pdftotext for Docling
-#   • ghostscript       – fallback PDF rasteriser
-#   • curl              – needed to install Ollama CLI
+#   • build-essential   – for wheels that require a compile step
+#   • poppler‑utils     – pdfimages / pdftotext used by Docling
+#   • ghostscript       – fallback PDF rasteriser
 # ---------------------------------------------------------------------------
-RUN apt-get update && \
+RUN apt-get update &&  \
     apt-get install -y --no-install-recommends \
         build-essential \
-        poppler-utils \
-        ghostscript \
-        curl \
+        poppler-utils   \
+        ghostscript     \
+        curl            \
     && rm -rf /var/lib/apt/lists/*
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Install Ollama CLI (optional – harmless if LLM_BACKEND=watsonx)
-# ---------------------------------------------------------------------------
-RUN curl -fsSL https://ollama.ai/install.sh | sh
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Python deps
@@ -61,15 +53,9 @@ COPY . .
 RUN mkdir -p "${DOCLING_OUTPUT_DIR}"
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Ports
-#   8000 – Flask web‑app
-#   11434 – Ollama daemon (exposed for debugging / external access)
-# ──────────────────────────────────────────────────────────────────────────────
-EXPOSE 8000 11434
-
-# ──────────────────────────────────────────────────────────────────────────────
 # Runtime
-#   • When BACKEND=ollama, the app will spawn ‘ollama serve’ automatically.
-#     (No ENTRYPOINT override required.)
 # ──────────────────────────────────────────────────────────────────────────────
+EXPOSE ${PORT}
+
+# A lightweight production server (can swap with gunicorn if desired)
 CMD ["python", "app.py"]

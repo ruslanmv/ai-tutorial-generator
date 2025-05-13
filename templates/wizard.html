@@ -4,14 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AI Tutorial Generator Wizard</title>
-  <!-- External CSS -->
+
+  <!-- Styles -->
   <link rel="stylesheet" href="/static/style.css">
+
   <!-- Markdown & Sanitizer libs -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
 </head>
 <body>
   <div class="container">
+    <!-- Progress bar ---------------------------------------------------------->
     <div class="progress">
       <div class="progress-step active" data-step="1">Source</div>
       <div class="progress-step" data-step="2">Outline</div>
@@ -19,39 +22,51 @@
       <div class="progress-step" data-step="4">Finalize</div>
     </div>
 
-    <!-- Step 1: Source Input -->
+    <!-- Step 1: Source Input -------------------------------------------------->
     <div class="step active" id="step-1">
-      <h2>Step 1: Provide Source</h2>
-      <p>Enter a URL or local file path to a PDF or HTML document.</p>
-      <input type="text" id="source-input" placeholder="https://example.com/guide.pdf">
+      <h2>Step 1 · Provide Source</h2>
+      <p>Enter a URL <em>or</em> upload a PDF / HTML file.</p>
+
+      <!-- URL text‑box -->
+      <input type="text"
+             id="source-input"
+             placeholder="https://example.com/guide.pdf">
+
+      <div class="or">— or —</div>
+
+      <!-- File picker -->
+      <input type="file"
+             id="file-input"
+             accept=".pdf,.html,.htm">
     </div>
 
-    <!-- Step 2: Outline Preview -->
+    <!-- Step 2: Outline ------------------------------------------------------->
     <div class="step" id="step-2">
-      <h2>Step 2: Preview Outline</h2>
+      <h2>Step 2 · Preview Outline</h2>
       <div id="render-outline">Outline will appear here…</div>
     </div>
 
-    <!-- Step 3: Draft Tutorial -->
+    <!-- Step 3: Draft --------------------------------------------------------->
     <div class="step" id="step-3">
-      <h2>Step 3: Review Draft</h2>
+      <h2>Step 3 · Review Draft</h2>
       <div id="render-draft">Draft tutorial will appear here…</div>
     </div>
 
-    <!-- Step 4: Final Markdown -->
+    <!-- Step 4: Final --------------------------------------------------------->
     <div class="step" id="step-4">
-      <h2>Step 4: Final Tutorial</h2>
+      <h2>Step 4 · Final Tutorial</h2>
       <textarea id="final-markdown" readonly></textarea>
       <button id="download-btn" class="primary">Download Markdown</button>
     </div>
 
+    <!-- Wizard navigation buttons -------------------------------------------->
     <div class="buttons">
       <button id="prev-btn" class="secondary" disabled>Back</button>
       <button id="next-btn" class="primary">Next</button>
     </div>
   </div>
 
-  <!-- App logic -->
+  <!-- JS bundle -->
   <script src="/static/app.js"></script>
 </body>
 </html>

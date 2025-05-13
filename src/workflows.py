@@ -1,159 +1,145 @@
+# ──────────────────────────────────────────────────────────────────────────────
 # src/workflows.py
+# ──────────────────────────────────────────────────────────────────────────────
+"""
+Async orchestration of the complete **Tutorial‑Generator** pipeline:
 
-import os
+    parse → analyze → structure → markdown → refine
+
+Every agent is instantiated with the *real* BeeAI `ChatModel` imported
+from `src.config` (Watson x Granite or local Ollama Granite).
+All agent `run()` methods are **async**, allowing the whole flow to be
+awaited from either the CLI (`src/main.py`) or the web layer (`app.py`).
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
 import time
-import traceback
+from pathlib import Path
+from typing import Any, Dict, List
 
-# Docling chunker (Hybrid) exclusively from docling
-from docling.chunking import HybridChunker
-
-# LangChain Core Document type
+# ──────────────────────────────────────────────────────────────────────────────
+# LangChain document type (fallback kept for older versions)
+# ──────────────────────────────────────────────────────────────────────────────
 try:
     from langchain_core.documents import Document
-except ImportError:
-    from langchain.schema import Document
+except ImportError:                                 # pragma: no cover
+    from langchain.schema import Document           # type: ignore
 
-# Agents
-from src.agents.source_retriever_agent import SourceRetrieverAgent
-from src.agents.document_parser_agent import DocumentParserAgent
+# ──────────────────────────────────────────────────────────────────────────────
+# Local imports — LLM & agent classes
+# ──────────────────────────────────────────────────────────────────────────────
+from src.config import llm_model
+
 from src.agents.content_analyzer_agent import ContentAnalyzerAgent
-from src.agents.tutorial_structure_agent import TutorialStructureAgent
+from src.agents.document_parser_agent import DocumentParserAgent
 from src.agents.markdown_generation_agent import MarkdownGenerationAgent
 from src.agents.reviewer_refiner_agent import ReviewerRefinerAgent
+from src.agents.tutorial_structure_agent import TutorialStructureAgent
+
+# Optionally: source retriever (e.g. URL download) before parsing
+# from src.agents.source_retriever_agent import SourceRetrieverAgent
+
+logger = logging.getLogger(__name__)
 
 
-class TutorialGeneratorWorkflow:
+# =============================================================================
+# ─── Internal helpers ────────────────────────────────────────────────────────
+# =============================================================================
+async def _run_blocking(func, *args, **kwargs):
     """
-    Orchestrates the sequence of agents to generate a Markdown tutorial
-    from a PDF or URL source, using an Ollama or Watsonx.ai chat model.
+    Execute a **sync** function in a separate thread so that the event‑loop
+    stays responsive.  Thin wrapper around `asyncio.to_thread`.
     """
+    return await asyncio.to_thread(func, *args, **kwargs)
 
-    def __init__(
-        self,
-        use_mocks: bool = False,
-        docling_output_dir: str = None,
-        model_name: str = None,
-    ):
-        # Determine model name (fallback to env or default)
-        if model_name is None:
-            model_name = os.environ.get(
-                "MODEL_NAME", "ollama:granite3.1-dense:8b"
-            )
-        self.use_mocks = use_mocks
-        self.model_name = model_name
 
-        print(
-            f"[Workflow] Initializing (use_mocks={self.use_mocks},"
-            f" model={self.model_name})"
-        )
+# =============================================================================
+# ─── Public orchestration coroutine ──────────────────────────────────────────
+# =============================================================================
+async def run_workflow(input_file: str | Path) -> Dict[str, Any]:
+    """
+    End‑to‑end pipeline.
 
-        # Instantiate agents
-        self.source_retriever = SourceRetrieverAgent()
-        self.parser = DocumentParserAgent(output_dir=docling_output_dir)
-        self.analyzer = ContentAnalyzerAgent(
-            use_mocks=self.use_mocks, model_name=self.model_name
-        )
-        self.structurer = TutorialStructureAgent(
-            use_mocks=self.use_mocks, model_name=self.model_name
-        )
-        self.md_generator = MarkdownGenerationAgent(
-            use_mocks=self.use_mocks, model_name=self.model_name
-        )
-        self.reviewer = ReviewerRefinerAgent(
-            use_mocks=self.use_mocks, model_name=self.model_name
-        )
+    Parameters
+    ----------
+    input_file
+        Path to a PDF or HTML file on disk.
 
-        print("[Workflow] All agents initialized.")
+    Returns
+    -------
+    dict
+        {
+            "markdown": "<final MD string>",
+            "outline":  [...],              # structured tutorial skeleton
+            "insights": [...],              # role‑tagged document blocks
+            "blocks":   [...],              # raw chunks from the parser
+            "src":      "<absolute path of input_file>"
+        }
+    """
+    start_t = time.perf_counter()
 
-    def run(self, source_uri: str) -> Document:
-        start_time = time.time()
-        print(f"\n[Workflow] Starting for source: {source_uri}")
-        result_doc = Document(
-            page_content="# Workflow Error", metadata={"role": "error"}
-        )
+    path = Path(input_file).expanduser().resolve()
+    if not path.is_file():  # pragma: no cover
+        raise FileNotFoundError(path)
 
-        try:
-            # Step 1: Retrieve
-            print("\n[Step 1] Retrieving source content...")
-            t0 = time.time()
-            raw_doc = self.source_retriever.run(source_uri)
-            t1 = time.time()
-            print(f"[Timing] SourceRetrieverAgent.run: {t1 - t0:.2f}s")
-            print(f"[Debug] raw_doc.metadata: {raw_doc.metadata}")
-            snippet = (
-                raw_doc.page_content[:200]
-                if hasattr(raw_doc, "page_content")
-                else ""
-            )
-            print(f"[Debug] raw_doc.page_content snippet: {snippet!r}")
+    # ──────────────────────────────────────────────────────────────────────────
+    # 1. Instantiate agents (stateless → one per workflow is fine)
+    # ──────────────────────────────────────────────────────────────────────────
+    parser      = DocumentParserAgent()
+    analyzer    = ContentAnalyzerAgent(model=llm_model)
+    structurer  = TutorialStructureAgent(model=llm_model)
+    md_generator = MarkdownGenerationAgent(model=llm_model)
+    refiner     = ReviewerRefinerAgent(model=llm_model)
 
-            # Step 2: Parse
-            print("\n[Step 2] Parsing document...")
-            t2 = time.time()
-            blocks = self.parser.run(raw_doc)
-            t3 = time.time()
-            print(f"[Timing] DocumentParserAgent.run: {t3 - t2:.2f}s")
-            print(f"[Debug] Parsed blocks count: {len(blocks)}")
-            if blocks:
-                print(
-                    f"[Debug] First block snippet: "
-                    f"{blocks[0].page_content[:200]!r}"
-                )
+    # ──────────────────────────────────────────────────────────────────────────
+    # 2. Parse  → List[Document]
+    # ──────────────────────────────────────────────────────────────────────────
+    t0 = time.perf_counter()
+    blocks: List[Document] = await _run_blocking(parser.run, str(path))
+    logger.info("Parsed %s blocks (%.2fs)", len(blocks), time.perf_counter() - t0)
 
-            # Step 3: Analyze
-            print("\n[Step 3] Analyzing blocks...")
-            t4 = time.time()
-            insights = self.analyzer.run(blocks)
-            t5 = time.time()
-            print(f"[Timing] ContentAnalyzerAgent.run: {t5 - t4:.2f}s")
-            print(f"[Debug] Insights count: {len(insights)}")
-            if insights:
-                print(f"[Debug] First insight snippet: {insights[0].page_content!r}")
+    # ──────────────────────────────────────────────────────────────────────────
+    # 3. Analyze  → role‑tagged & summarised blocks
+    # ──────────────────────────────────────────────────────────────────────────
+    t1 = time.perf_counter()
+    insights: List[Document] = await analyzer.run(blocks)
+    logger.info("Analyzed blocks (%.2fs)", time.perf_counter() - t1)
 
-            # Step 4: Structuring
-            print("\n[Step 4] Structuring outline...")
-            t6 = time.time()
-            outline_doc = self.structurer.run(insights)
-            t7 = time.time()
-            print(f"[Timing] TutorialStructureAgent.run: {t7 - t6:.2f}s")
-            print(f"[Debug] outline_doc.metadata: {outline_doc.metadata}")
+    # ──────────────────────────────────────────────────────────────────────────
+    # 4. Structure  → tutorial outline
+    # ──────────────────────────────────────────────────────────────────────────
+    t2 = time.perf_counter()
+    outline: List[Dict[str, Any]] = await structurer.run(insights)
+    logger.info("Built outline (%.2fs)", time.perf_counter() - t2)
 
-            # Step 5: Generate Markdown
-            print("\n[Step 5] Generating Markdown tutorial...")
-            t8 = time.time()
-            # ── FIX: pass both outline_doc AND insights ────────────────
-            draft_doc = self.md_generator.run(outline_doc, insights)
-            t9 = time.time()
-            print(f"[Timing] MarkdownGenerationAgent.run: {t9 - t8:.2f}s")
-            print(f"[Debug] draft_doc.metadata: {draft_doc.metadata}")
+    # ──────────────────────────────────────────────────────────────────────────
+    # 5. Markdown generation
+    # ──────────────────────────────────────────────────────────────────────────
+    t3 = time.perf_counter()
+    markdown: str = await md_generator.run(outline)
+    logger.info("Generated Markdown (%.2fs)", time.perf_counter() - t3)
 
-            # Step 6: Review & refine
-            print("\n[Step 6] Reviewing & refining...")
-            t10 = time.time()
-            final_doc = self.reviewer.run(draft_doc)
-            t11 = time.time()
-            print(f"[Timing] ReviewerRefinerAgent.run: {t11 - t10:.2f}s")
-            print(f"[Debug] final_doc.metadata: {final_doc.metadata}")
+    # ──────────────────────────────────────────────────────────────────────────
+    # 6. Refinement / polishing
+    # ──────────────────────────────────────────────────────────────────────────
+    t4 = time.perf_counter()
+    markdown = await refiner.run(markdown)
+    logger.info("Refined Markdown (%.2fs)", time.perf_counter() - t4)
 
-            if "error" in final_doc.metadata.get("role", ""):
-                print("[Workflow][WARNING] Refinement failed; using draft.")
-                draft_doc.metadata["status"] = "unrefined"
-                result_doc = draft_doc
-            else:
-                result_doc = final_doc
-                print("[Workflow] Tutorial refined successfully.")
+    # ──────────────────────────────────────────────────────────────────────────
+    # 7. Done
+    # ──────────────────────────────────────────────────────────────────────────
+    total = time.perf_counter() - start_t
+    logger.info("Workflow finished in %.2fs", total)
 
-            end_time = time.time()
-            print(
-                f"\n[Workflow] Completed successfully in {end_time - start_time:.2f}s"
-            )
-
-        except Exception as e:
-            print(f"\n[Workflow] FAILED: {e}")
-            traceback.print_exc()
-            result_doc = Document(
-                page_content=f"# Workflow Failed\n\nError: {e}",
-                metadata={"role": "error", "status": "failed"},
-            )
-
-        return result_doc
+    return {
+        "markdown": markdown,
+        "outline":  outline,
+        "insights": insights,
+        "blocks":   blocks,
+        "src":      str(path),
+        "elapsed":  round(total, 2),
+    }
