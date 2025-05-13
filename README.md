@@ -90,7 +90,7 @@ flowchart TD
 * **Python 3.12+**
 * **beeai-framework**
 * **Docling**
-* **Ollama** (or **Replicate API token** for live Granite models)
+* **Ollama** (or **WatsonX API token** for live Granite models)
 * **Flask**
 
 Set environment variables:
@@ -106,7 +106,7 @@ For Ollama local inference:
 ```bash
 brew install ollama
 ollama pull granite3.1-dense:8b
-ollama pull granite-vision-3.2-2b
+ollama pull granite3.2-vision:2b
 ```
 
 
@@ -149,7 +149,7 @@ ollama run granite3.1-dense:8b "Hello, how are you today?"
 ```bash
 python src/main.py https://example.com/guide.pdf > tutorial.md
 ```
-
+python src/main.py input_docs/my_tutorial.pdf
 ### Web UI Mode
 
 ```bash

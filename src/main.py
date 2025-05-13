@@ -2,6 +2,7 @@
 
 import sys
 import os
+from dotenv import load_dotenv
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Debug: print invocation context
@@ -9,8 +10,11 @@ print(f"[DEBUG] __name__={__name__}")
 print(f"[DEBUG] sys.argv={sys.argv}")
 print(f"[DEBUG] BOTTLE_CHILD={os.environ.get('BOTTLE_CHILD')}")
 
-# Ensure the project root is on sys.path so 'src' can be imported
+# Load environment variables from .env file at project root
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
+
+# Ensure the project root is on sys.path so 'src' can be imported
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
@@ -97,7 +101,7 @@ if _BOTTLE_AVAILABLE:
         blocks   = workflow.parser.run(raw)
         insights = workflow.analyzer.run(blocks)
         outline  = workflow.structurer.run(insights)
-        draft    = workflow.md_generator.run(outline, insights)
+        draft    = workflow.md_generator.run(outline)
         print(f"[DEBUG] Returning draft ({len(draft.page_content)} chars)")
         return {"draft": draft.page_content}
 
@@ -113,6 +117,7 @@ if _BOTTLE_AVAILABLE:
         final = workflow.run(src)
         print(f"[DEBUG] Returning tutorial ({len(final.page_content)} chars)")
         return {"tutorial": final.page_content}
+
 
 def _run_cli_mode():
     """
