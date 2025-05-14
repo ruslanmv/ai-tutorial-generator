@@ -1,18 +1,17 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# Dockerfile · AI Tutorial Generator
+# Dockerfile · AI Tutorial Generator
 # ──────────────────────────────────────────────────────────────────────────────
 # This image can run **both**:
-#   • the Flask web‑app, and
-#   • a local Ollama daemon (CLI is installed via official installer)
-#
+#   • the Flask web‑app
+#   • the CLI tutorial generator via `python -m src.main`
 # If LLM_BACKEND=ollama the app will auto‑start the daemon when the
 # container boots and auto‑pull the requested model (when OLLAMA_AUTO_PULL=1).
-# ------------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 
 FROM python:3.12-slim AS runtime
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Environment
+# Environment variables
 # ──────────────────────────────────────────────────────────────────────────────
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -26,11 +25,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 # ──────────────────────────────────────────────────────────────────────────────
 # System dependencies
-#   • build-essential   – build wheels
-#   • poppler‑utils     – pdfimages / pdftotext for Docling
-#   • ghostscript       – fallback PDF rasteriser
-#   • curl              – needed to install Ollama CLI
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \
@@ -41,35 +36,41 @@ RUN apt-get update && \
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Install Ollama CLI (optional – harmless if LLM_BACKEND=watsonx)
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 RUN curl -fsSL https://ollama.ai/install.sh | sh
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Python deps
+# Application directory
 # ──────────────────────────────────────────────────────────────────────────────
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Project files
+# Python dependencies
+# ──────────────────────────────────────────────────────────────────────────────
+COPY requirements.txt requirements_dev.txt ./
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements_dev.txt
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Copy project files
 # ──────────────────────────────────────────────────────────────────────────────
 COPY . .
 
-# Ensure Docling has somewhere to write intermediate files
-RUN mkdir -p "${DOCLING_OUTPUT_DIR}"
+# Ensure directories exist
+RUN mkdir -p "${DOCLING_OUTPUT_DIR}" \
+             /app/uploads
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Ports
+# Expose ports
 #   8000 – Flask web‑app
-#   11434 – Ollama daemon (exposed for debugging / external access)
+#   11434 – Ollama daemon
 # ──────────────────────────────────────────────────────────────────────────────
 EXPOSE 8000 11434
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Runtime
-#   • When BACKEND=ollama, the app will spawn ‘ollama serve’ automatically.
-#     (No ENTRYPOINT override required.)
+# Default command: launch Flask app
+# Users can override CMD to run CLI: e.g.
+#   docker run <image> python -m src.main input.pdf -o out.md
 # ──────────────────────────────────────────────────────────────────────────────
 CMD ["python", "app.py"]

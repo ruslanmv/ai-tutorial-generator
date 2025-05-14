@@ -1,130 +1,116 @@
-# ──────────────────────────────────────────────────────────────────────────────
-# src/main.py    —  CLI / batch entry‑point for *tutorial_generator*
+# src/main.py
 # ──────────────────────────────────────────────────────────────────────────────
 """
-Generate a Markdown tutorial from an **HTML** or **PDF** file.
+CLI entrypoint for the Tutorial Generator.
 
-Usage examples
-──────────────
-▶ python -m src.main ./input_docs/my_tutorial.pdf
-▶ python -m src.main ./input_docs/page.html -o ./output/tutorial.md
+Usage:
+  python -m src.main input_docs/my_tutorial.pdf                        # prints Markdown
+  python -m src.main input_docs/another_article.html -o tutorial.md    # save to file
+  python -m src.main input_docs/my_tutorial.pdf --json                 # full JSON payload
+  python -m src.main https://en.wikipedia.org/wiki/Quantum_harmonic_oscillator
 """
-
-from __future__ import annotations
-
 import argparse
 import asyncio
 import json
-import logging
-import os
 import sys
+import tempfile
 from pathlib import Path
-from typing import Any, Dict, Optional
 
-from dotenv import load_dotenv
+import requests
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Environment & logging
-# ──────────────────────────────────────────────────────────────────────────────
-PROJECT_ROOT: Path = Path(__file__).resolve().parents[1]
-load_dotenv(PROJECT_ROOT / ".env")           # does nothing if the file is absent
-
-logging.basicConfig(
-    level=os.getenv("LOGLEVEL", "INFO").upper(),
-    format="%(asctime)s | %(levelname)-8s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Application imports
-# ──────────────────────────────────────────────────────────────────────────────
-try:
-    # The workflow that runs every agent in sequence
-    from src.workflows import run_workflow        # noqa: WPS433
-except ImportError as exc:                         # pragma: no cover
-    logging.critical("Cannot import workflow: %s", exc)
-    sys.exit(1)
+from src.workflows import run_workflow
 
 
-# =============================================================================
-# ─── Helpers ─────────────────────────────────────────────────────────────────
-# =============================================================================
-def _positive_int(value: str) -> int:
-    ivalue = int(value)
-    if ivalue <= 0:  # noqa: WPS507
-        raise argparse.ArgumentTypeError(f"{value} is not a positive integer")
-    return ivalue
-
-
-# =============================================================================
-# ─── Async main coroutine ────────────────────────────────────────────────────
-# =============================================================================
-async def _async_main(argv: Optional[list[str]] = None) -> None:        # noqa: WPS231
+def fetch_to_temp(source: str) -> Path:
     """
-    Parse CLI arguments, launch the tutorial‑generation workflow,
-    and print (or save) the resulting Markdown.
+    Download a remote URL to a temporary file (PDF or HTML).
+    Returns a Path to the downloaded file.
     """
+    resp = requests.get(source)
+    resp.raise_for_status()
+
+    # Determine file type
+    content_type = resp.headers.get("Content-Type", "").lower()
+    if source.lower().endswith(".pdf") or "application/pdf" in content_type:
+        suffix = ".pdf"
+        mode = "wb"
+        data = resp.content
+    else:
+        suffix = ".html"
+        mode = "w"
+        data = resp.text
+
+    # Write to temp file
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix, mode=mode)
+    tmp.write(data)
+    tmp.flush()
+    tmp.close()
+    return Path(tmp.name)
+
+
+async def process(source: str, output: Path | None, as_json: bool) -> None:
+    """
+    Download (if URL) or verify local path, run the workflow,
+    and print or save results.
+    """
+    # Prepare input path
+    if source.startswith(("http://", "https://")):
+        path = fetch_to_temp(source)
+    else:
+        path = Path(source).expanduser().resolve()
+        if not path.is_file():
+            print(f"Error: file not found: {path}", file=sys.stderr)
+            sys.exit(1)
+
+    # Run workflow
+    try:
+        result = await run_workflow(str(path))
+    except Exception as e:
+        print(f"Workflow error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Output
+    if as_json:
+        print(json.dumps(result, indent=2))
+    else:
+        md = result.get("markdown", "")
+        if output:
+            try:
+                output_path = Path(output)
+                output_path.write_text(md, encoding="utf-8")
+                print(f"Markdown written to {output_path}")
+            except Exception as e:
+                print(f"Failed to write file: {e}", file=sys.stderr)
+                sys.exit(1)
+        else:
+            print(md)
+
+
+def main():
     parser = argparse.ArgumentParser(
-        prog="tutorial‑generator",
-        description="Generate a Markdown tutorial from an HTML / PDF source file "
-                    "using Granite / Watson‑x LLMs.",
+        description="Generate a tutorial from a local PDF/HTML file or a URL."
     )
     parser.add_argument(
-        "input",
-        help="Path to the source file (HTML or PDF).",
-        type=Path,
+        "source",
+        help="Path to a PDF/HTML file or URL of a webpage",
     )
     parser.add_argument(
         "-o", "--output",
-        help="Path where the generated Markdown will be written. "
-             "If omitted, the Markdown is printed to stdout.",
-        type=Path,
-        default=None,
+        help="File path to write markdown output",
+        metavar="FILE"
     )
     parser.add_argument(
         "--json",
         action="store_true",
-        help="Return the full JSON produced by the workflow instead of plain Markdown.",
+        help="Print full JSON payload instead of just markdown"
     )
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
 
-    input_path: Path = args.input.expanduser().resolve()
-    if not input_path.is_file():
-        logging.error("Input file not found: %s", input_path)
-        sys.exit(2)
-
-    logging.info("Processing %s …", input_path)
     try:
-        result: Dict[str, Any] = await run_workflow(str(input_path))
-    except Exception:                                                   # noqa: BLE001
-        logging.exception("The workflow crashed")
-        sys.exit(3)
-
-    # Either entire JSON or just the "markdown" key
-    output_text: str
-    if args.json:
-        output_text = json.dumps(result, indent=4, ensure_ascii=False)
-    else:
-        output_text = result.get("markdown", "")
-        if not output_text:
-            logging.warning("No 'markdown' field in workflow result — printing raw JSON.")
-            output_text = json.dumps(result, indent=4, ensure_ascii=False)
-
-    if args.output:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(output_text, encoding="utf-8")
-        logging.info("Markdown written to %s", args.output)
-    else:
-        print(output_text)
+        asyncio.run(process(args.source, args.output, args.json))
+    except KeyboardInterrupt:
+        sys.exit(0)
 
 
-# =============================================================================
-# ─── Module entry‑point for `python -m src.main` ─────────────────────────────
-# =============================================================================
-def main() -> None:                                      # noqa: D401  (simple wrapper)
-    """Synchronous wrapper that launches the async CLI."""
-    asyncio.run(_async_main())
-
-
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
     main()
