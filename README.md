@@ -1,8 +1,11 @@
 # AI Tutorial Generator 🚀  
-
+![](assets/workflow.gif)
 *From raw PDF or web page to a beautifully‑structured, step‑by‑step Markdown tutorial—fully automated.*
 
+
 ---
+
+
 
 ## 1 · Why this project? 🤔
 
@@ -108,6 +111,8 @@ python -m src.main input_docs/my_tutorial.pdf                        # prints Ma
 python -m src.main input_docs/another_article.html -o tutorial.md    # save to file
 python -m src.main input_docs/my_tutorial.pdf --json                 # full JSON payload
 ```
+Example 
+![](assets/2025-05-14-22-34-58.png)
 
 ### Flask Web UI
 
@@ -117,7 +122,7 @@ python app.py
 ```
 
 Upload a file or paste a URL, wait a few seconds, then download the tutorial.
-
+Example
 ---
 ![](assets/2025-05-14-14-04-44.png)
 
@@ -128,7 +133,7 @@ python -m src.main https://www.adobe.com/support/products/enterprise/knowledgece
        -o adobe-sample.md
 code adobe-sample.md      # open in VS Code
 ```
-
+![](assets/2025-05-14-22-45-28.png)
 ---
 
 ## 8 · Supported Watson x model IDs  (2025‑05) 📜
@@ -145,11 +150,31 @@ Validation logic in `src/config.py` ensures you pick a compatible ID.
 ---
 
 ## 9 · Docker 🧩
-
+You can build by using
 ```bash
-docker build -t tutorial-gen .
-docker run -p 8000:8000 --env-file .env tutorial-gen
+docker build -t ruslanmv/ai-tutorial-generator .
 ```
+
+# Run web interface:
+```bash
+   docker run -p 8000:8000 --env-file .env ruslanmv/ai-tutorial-generator
+```
+
+![](assets/5.jpg)
+
+# Run CLI:
+
+From pdf files
+```bash
+docker run --env-file .env ruslanmv/ai-tutorial-generator python -m src.main input_docs/my_tutorial.pdf -o tutorial.md
+```
+From webpages
+Creatio
+```bash
+docker run --env-file .env ruslanmv/ai-tutorial-generator python -m src.main https://en.wikipedia.org/wiki/Quantum_harmonic_oscillator
+```
+
+![](assets/2025-05-14-23-40-19.png)
 
 *The image bundles Poppler + Ghostscript and installs the Ollama CLI.
 If `LLM_BACKEND=ollama`, the container auto‑starts `ollama serve`.*
