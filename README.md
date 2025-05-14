@@ -1,74 +1,65 @@
-# AI Tutorial Generator
+# AI Tutorial Generator 🚀  
 
-**Turn any PDF or web page into a polished, step‑by‑step Markdown tutorial — automatically.**
-Built with a modular *agent* architecture powered by [beeai‑framework] + [Docling] and Granite LLMs (IBM Watson x / local Ollama).
+*From raw PDF or web page to a beautifully‑structured, step‑by‑step Markdown tutorial—fully automated.*
 
 ---
 
-## 1 · How it works  ⚙️
+## 1 · Why this project? 🤔
 
-1. **SourceRetrieverAgent** – downloads a URL or reads a local file.
-2. **DocumentParserAgent** – parses PDF / HTML into text chunks with *Docling*.
-3. **ContentAnalyzerAgent** – classifies every chunk (title, step, code…) and writes a one‑sentence English summary.
-4. **TutorialStructureAgent** – designs a coherent outline (JSON).
-5. **MarkdownGenerationAgent** – expands the outline into a full Markdown tutorial.
-6. **ReviewerRefinerAgent** – final language & style polish.
+Tech writers and educators spend hours distilling source material into easy‑to‑follow tutorials.  
+**AI Tutorial Generator** removes that friction:
+
+* **One‑click:** drop a PDF / paste a URL → get a polished tutorial.  
+* **Multi‑agent architecture:** each agent focuses on a tiny task (retrieve, parse, analyse, structure, write, refine).  
+* **Pluggable LLM back‑ends:**  
+  * **Local** — Ollama + Granite 8 B (works offline, CPU‑only OK)  
+  * **Cloud** — IBM Watson x.ai (Granite 13 B, Llama 3 2‑3 B, Mistral Large…)
+
+---
+
+## 2 · Architecture 🧩
 
 ```mermaid
 flowchart TD
-    A["URL or File"] --> B[Source Retriever]
-    B --> C[Docling Parser]
-    C --> D[Content Analyzer]
-    D --> E[Structure Designer]
-    E --> F[Markdown Generator]
-    F --> G[Reviewer & Refiner]
-    G --> H["✓ Finished Markdown"]
-```
+    subgraph Retrieval["✂ Retrieval & Parsing"]
+        A["① Source URI / File"] --> B[SourceRetrieverAgent]
+        B --> C[DocumentParserAgent]
+    end
+    subgraph Analysis["🔍 Analysis & Structuring"]
+        C --> D[ContentAnalyzerAgent]
+        D --> E[TutorialStructureAgent]
+    end
+    subgraph Generation["✍ Generation & Refinement"]
+        E --> F[MarkdownGenerationAgent]
+        F --> G[ReviewerRefinerAgent]
+        G --> H["✅ Markdown Tutorial"]
+    end
+
+    style Retrieval    fill:#eef,stroke:#6ba4ff,stroke-width:1px
+    style Analysis     fill:#eafbe7,stroke:#5cb85c,stroke-width:1px
+    style Generation   fill:#fff2e6,stroke:#f0ad4e,stroke-width:1px
+````
+
+*Each arrow is an async call; every box is an **Agent** (`run()` coroutine).*
 
 ---
 
-## 2 · Features  ✨
+## 3 · Key features ✨
 
-| Stage                     | What it does                                                                                        |
-| ------------------------- | --------------------------------------------------------------------------------------------------- |
-| `SourceRetrieverAgent`    | Resilient HTTP fetch with retries, auto‑saves PDFs to a temp file and cleans them up on exit.       |
-| `DocumentParserAgent`     | Uses Docling’s `DocumentConverter` + `HybridChunker` for consistent PDF / HTML parsing.             |
-| `ContentAnalyzerAgent`    | Calls Granite (Watson x or Ollama) to tag each block’s role and write a 1‑sentence English summary. |
-| `TutorialStructureAgent`  | Produces a hierarchical outline in **JSON** (Introduction → Steps → Examples → Conclusion).         |
-| `MarkdownGenerationAgent` | Fills the outline with explanations, tips, and fenced code blocks.                                  |
-| `ReviewerRefinerAgent`    | Single LLM pass to smooth flow, fix grammar, and ensure proper Markdown.                            |
-| **CLI**                   | `python -m src.main <source>` → prints Markdown / JSON.                                             |
-| **Web UI**                | Minimal Flask app (`app.py`) with an upload wizard.                                                 |
-
----
-
-## 3 · Installation 📦
-
-```bash
-# 1 Clone
-git clone https://github.com/your-org/ai-tutorial-generator.git
-cd ai-tutorial-generator
-
-# 2 Python env
-python -m venv .venv && source .venv/bin/activate
-
-# 3 Dependencies
-pip install -r requirements.txt
-```
-
-### Optional · Local Ollama backend
-
-```bash
-brew install ollama        # or visit https://ollama.ai
-ollama pull granite:8b-instruct-q4_K_M
-ollama serve &
-```
+| Agent                       | What it does                                                             |
+| --------------------------- | ------------------------------------------------------------------------ |
+| **SourceRetrieverAgent**    | Downloads a URL / accepts file upload, detects PDF vs HTML.              |
+| **DocumentParserAgent**     | Uses **Docling** + Poppler to extract clean text blocks.                 |
+| **ContentAnalyzerAgent**    | Tags each block (`title`, `code`, `step`…) + 1‑sentence summary via LLM. |
+| **TutorialStructureAgent**  | Produces JSON outline (Intro → Steps → Examples → Conclusion).           |
+| **MarkdownGenerationAgent** | Expands outline into full Markdown with code blocks, tips, warnings.     |
+| **ReviewerRefinerAgent**    | Final polish: grammar, style, length targets.                            |
 
 ---
 
 ## 4 · Configuration 🗝️
 
-All credentials live in `.env` (a template is provided at `.env.sample`).
+All credentials live in `.env` (template at `.env.sample`).
 
 ```dotenv
 # Choose the LLM backend:  watsonx   |   ollama
@@ -77,100 +68,136 @@ LLM_BACKEND=ollama
 # Watson x (needed if LLM_BACKEND=watsonx)
 WATSONX_PROJECT_ID=***
 WATSONX_API_KEY=***
-WATSONX_API_URL=https://bam-api.res.ibm.com/v2/text
+WATSONX_API_URL=https://us-south.ml.cloud.ibm.com
+WATSONX_MODEL_ID=ibm/granite-13b-instruct-v2
 
 # Ollama (needed if LLM_BACKEND=ollama)
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL_ID=granite:8b-instruct-q4_K_M
+OLLAMA_MODEL_ID=granite:8b-chat
+OLLAMA_AUTO_PULL=1                 # pull model automatically if missing
 
-# Optional tuning
-LLM_MAX_QPS=8                  # global request limiter
-DAYS_PER_MONTH=30.4375
+
 ```
 
-> **Tip:** when `LLM_BACKEND=ollama` no external network calls are made — ideal for completely offline use.
+> **Tip:** when `LLM_BACKEND=ollama` no external network calls are made—ideal for completely **offline** use.
 
 ---
 
-## 5 · Usage 🚀
+## 5 · Installation & quick start 🛠️
+
+```bash
+git clone https://github.com/ruslanmv/ai-tutorial-generator.git
+cd ai-tutorial-generator
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# Local Ollama example
+curl -fsSL https://ollama.ai/install.sh | sh
+ollama serve &                      # starts daemon
+ollama pull granite:8b-chat         # one‑time model download
+```
+
+---
+
+## 6 · Usage 🚀
 
 ### CLI
 
 ```bash
-python -m src.main ./docs/sample.pdf          # prints Markdown to stdout
-python -m src.main https://example.com/page   -o tutorial.md   # save to file
-python -m src.main page.html --json           # return full JSON payload
+python -m src.main input_docs/my_tutorial.pdf                        # prints Markdown
+python -m src.main input_docs/another_article.html -o tutorial.md    # save to file
+python -m src.main input_docs/my_tutorial.pdf --json                 # full JSON payload
 ```
 
 ### Flask Web UI
 
 ```bash
 python app.py
-# open http://localhost:8000 in your browser
+# open http://localhost:8000
 ```
 
-Upload a file, wait a few seconds, and copy / download the generated tutorial.
+Upload a file or paste a URL, wait a few seconds, then download the tutorial.
 
 ---
+![](assets/2025-05-14-14-04-44.png)
 
-## 6 · Example 🧑‍💻
+## 7 · Example 🧑‍💻
 
 ```bash
 python -m src.main https://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf \
-       -o sample-tutorial.md
-code sample-tutorial.md        # open in your editor
+       -o adobe-sample.md
+code adobe-sample.md      # open in VS Code
 ```
 
 ---
 
-## 7 · Project Tree 🌲
+## 8 · Supported Watson x model IDs  (2025‑05) 📜
+
+| ID                               | Regions                         |
+| -------------------------------- | ------------------------------- |
+| **ibm/granite-13b-instruct-v2**  | au-syd, eu-de, jp-tok, us-south |
+| ibm/granite-3-8b-instruct        | au-syd, eu-de, jp-tok, us-south |
+| meta-llama/llama-3-2-3b-instruct | us-south                        |
+| …                                | *(see IBM catalogue)*           |
+
+Validation logic in `src/config.py` ensures you pick a compatible ID.
+
+---
+
+## 9 · Docker 🧩
+
+```bash
+docker build -t tutorial-gen .
+docker run -p 8000:8000 --env-file .env tutorial-gen
+```
+
+*The image bundles Poppler + Ghostscript and installs the Ollama CLI.
+If `LLM_BACKEND=ollama`, the container auto‑starts `ollama serve`.*
+
+---
+
+## 10 · Troubleshooting 🔍
+
+| Symptom                             | Fix                                                               |
+| ----------------------------------- | ----------------------------------------------------------------- |
+| `model … not recognised` (Watson x) | Update `.env` with a valid `WATSONX_MODEL_ID` from the table.     |
+| `ollama pull … file does not exist` | Wrong tag. Use `granite:8b-chat`, `llama3`, `mistral-large`, etc. |
+| `poppler-utils not found`           | `sudo apt install poppler-utils ghostscript` (Linux).             |
+| Very large PDF slow                 | Split into chapters or raise `OLLAMA_NUM_CTX`.                    |
+| GPU OOM                             | Switch to quantised model (`…q4_K_M`) or CPU mode.                |
+
+---
+
+## 11 · Project layout 📂
 
 ```
-tutorial_generator/
-├── README.md                ← you are here
+ai-tutorial-generator/
+├── app.py                 # Flask wizard
+├── Dockerfile
 ├── .env.sample
 ├── requirements.txt
-├── app.py                   ← Flask front‑end
-│
-├── src/
-│   ├── config.py            ← single LLM “singleton”
-│   ├── main.py              ← CLI entry‑point
-│   ├── workflows.py         ← end‑to‑end orchestration
-│   ├── agents/
-│   │   ├── content_analyzer_agent.py
-│   │   ├── document_parser_agent.py
-│   │   ├── markdown_generation_agent.py
-│   │   ├── reviewer_refiner_agent.py
-│   │   ├── source_retriever_agent.py
-│   │   └── tutorial_structure_agent.py
-│   └── utils/
-│       └── rate_limit.py
-└── templates/  static/  docs/ …
+├── templates/             # wizard.html
+├── static/                # app.js + style.css
+└── src/
+    ├── config.py          # picks Watsonx / Ollama
+    ├── utils/ollama_helper.py
+    ├── workflows.py       # end‑to‑end pipeline
+    ├── main.py            # CV analysis demo
+    └── agents/            # 6 modular agents
 ```
 
 ---
 
-## 8 · Troubleshooting 🛠️
+## 12 · Contributing 🤝
 
-| Symptom                            | Fix                                                                               |
-| ---------------------------------- | --------------------------------------------------------------------------------- |
-| **`ImportError: docling`**         | `pip install docling`                                                             |
-| **`FileNotFoundError`** for `.env` | Copy `.env.sample` → `.env` and fill in credentials.                              |
-| Model returns *empty outline*      | Check `llm_model` in `.env` — Granite 8B works well; smaller models may struggle. |
-| Large PDF very slow                | Split the PDF or increase `OLLAMA_NUM_CTX`.                                       |
-| Out‑of‑memory on Ollama            | Use a quantised model (`…q4_K_M`).                                                |
+* Fork → feature branch → PR.
+* Follow `flake8`, `black`, `mypy` conventions.
+* Please add unit tests (pytest).
 
 ---
 
-## 9 · Contributing 🤝
+Made with ☕ and open‑source tools.
+If this project saves you time, give it a ⭐️!
 
-* Fork → feature branch → pull request.
-* Please include unit tests where practical (pytest).
-* Join the discussion in Issues for ideas & feedback.
-
----
-
-Made with ☕ and open‑source tools. Enjoy creating tutorials the easy way!
-
-[beeai‑framework]: https://github.com/beeai/beeai-framework
+[beeai-framework]: https://github.com/beeai/beeai-framework
 [Docling]: https://github.com/docling/docling
