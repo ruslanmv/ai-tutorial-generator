@@ -1,11 +1,18 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # Dockerfile · AI Tutorial Generator
 # ──────────────────────────────────────────────────────────────────────────────
-# This image can run **both**:
-#   • the Flask web‑app
-#   • the CLI tutorial generator via `python -m src.main`
-# If LLM_BACKEND=ollama the app will auto‑start the daemon when the
-# container boots and auto‑pull the requested model (when OLLAMA_AUTO_PULL=1).
+# Supports both:
+#   • Flask web‑app (default)
+#   • CLI tutorial generator via override
+#
+# Build:
+#   docker build -t ruslanmv/ai-tutorial-generator .
+#
+# Run web interface:
+#   docker run -p 8000:8000 --env-file .env ruslanmv/ai-tutorial-generator
+#
+# Run CLI:
+#   docker run --env-file .env ruslanmv/ai-tutorial-generator python -m src.main input_docs/my_tutorial.pdf -o tutorial.md
 # ──────────────────────────────────────────────────────────────────────────────
 
 FROM python:3.12-slim AS runtime
@@ -35,17 +42,17 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Install Ollama CLI (optional – harmless if LLM_BACKEND=watsonx)
+# Install Ollama CLI (harmless if using WatsonX backend)
 # ──────────────────────────────────────────────────────────────────────────────
 RUN curl -fsSL https://ollama.ai/install.sh | sh
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Application directory
+# Set working directory
 # ──────────────────────────────────────────────────────────────────────────────
 WORKDIR /app
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Python dependencies
+# Install Python dependencies
 # ──────────────────────────────────────────────────────────────────────────────
 COPY requirements.txt requirements_dev.txt ./
 RUN pip install --upgrade pip && \
@@ -54,12 +61,14 @@ RUN pip install --upgrade pip && \
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Copy project files
+# (Ensure you include a .dockerignore with .env entries to skip local .env files)
 # ──────────────────────────────────────────────────────────────────────────────
 COPY . .
 
-# Ensure directories exist
-RUN mkdir -p "${DOCLING_OUTPUT_DIR}" \
-             /app/uploads
+# ──────────────────────────────────────────────────────────────────────────────
+# Prepare directories
+# ──────────────────────────────────────────────────────────────────────────────
+RUN mkdir -p "${DOCLING_OUTPUT_DIR}" /app/uploads
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Expose ports
@@ -70,7 +79,7 @@ EXPOSE 8000 11434
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Default command: launch Flask app
-# Users can override CMD to run CLI: e.g.
-#   docker run <image> python -m src.main input.pdf -o out.md
+# Override with e.g.:
+#   docker run ... ruslanmv/ai-tutorial-generator python -m src.main ...
 # ──────────────────────────────────────────────────────────────────────────────
 CMD ["python", "app.py"]
