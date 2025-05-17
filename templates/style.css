@@ -1,0 +1,154 @@
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+.container {
+    width: 90%;
+    max-width: 1400px;
+    margin: auto;
+    overflow: hidden;
+    padding: 20px;
+}
+
+header {
+    background: #333;
+    color: #fff;
+    padding: 1rem 0;
+    text-align: center;
+    margin-bottom: 20px;
+}
+header h1 {
+    margin: 0;
+}
+
+.global-actions button {
+    margin: 5px;
+    padding: 8px 12px;
+    background-color: #5cb85c;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+.global-actions button:hover {
+    background-color: #4cae4c;
+}
+
+
+.main-content {
+    display: flex;
+    gap: 20px;
+}
+
+.sidebar {
+    flex: 1;
+    background: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.editor-area {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.graph-display, .node-editor {
+    background: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.graph-display img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    border: 1px solid #ddd;
+}
+
+#workflow-tree .tree-node {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+#workflow-tree .tree-node:hover {
+    background-color: #f0f0f0;
+}
+#workflow-tree .tree-node.selected {
+    background-color: #e0e0ff;
+    font-weight: bold;
+}
+
+.node-actions-inline .action-btn {
+    background: none;
+    border: 1px solid #ccc;
+    color: #333;
+    cursor: pointer;
+    padding: 2px 6px;
+    margin-left: 5px;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+.node-actions-inline .action-btn:hover {
+    background-color: #ddd;
+}
+.node-actions-inline .delete-btn {
+    color: red;
+}
+
+
+.node-editor form div {
+    margin-bottom: 10px;
+}
+
+.node-editor label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.node-editor input[type="text"],
+.node-editor textarea {
+    width: calc(100% - 22px); /* Account for padding/border */
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.node-editor button {
+    padding: 10px 15px;
+    background-color: #337ab7;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-right: 5px;
+}
+
+.node-editor button:hover {
+    background-color: #286090;
+}
+.node-editor button[type="button"] {
+    background-color: #777;
+}
+.node-editor button[type="button"]:hover {
+    background-color: #666;
+}
+
+/* Utility */
+.hidden {
+    display: none;
+}

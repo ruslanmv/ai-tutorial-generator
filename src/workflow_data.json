@@ -1,0 +1,44 @@
+[
+  {
+    "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+    "title": "Introduction",
+    "bullets": [
+      "What this tutorial is about",
+      "Key objectives"
+    ],
+    "children": []
+  },
+  {
+    "id": "b2c3d4e5-f6a7-8901-2345-67890abcdef0",
+    "title": "Steps",
+    "children": [
+      {
+        "id": "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
+        "title": "Step 1: Setup",
+        "bullets": [
+          "Install prerequisites",
+          "Configure environment"
+        ],
+        "children": []
+      },
+      {
+        "id": "d4e5f6a7-b8c9-0123-4567-890abcdef012",
+        "title": "Step 2: Execution",
+        "bullets": [
+          "Run the script",
+          "Verify output"
+        ],
+        "children": []
+      }
+    ],
+    "bullets": []
+  },
+  {
+    "id": "8882fd08-e880-4842-811f-3e0df77ab343",
+    "title": "node 3",
+    "bullets": [
+      "we nee"
+    ],
+    "children": []
+  }
+]

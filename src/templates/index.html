@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask Workflow Editor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Workflow Editor</h1>
+            <div class="global-actions">
+                <button onclick="saveWorkflowToServer()">Save Workflow (Server)</button>
+                <button onclick="loadWorkflowFromServer()">Reload Workflow (Server)</button>
+                 <button onclick="prepareAddNodeForm(null, false, true)">Add Root Node</button> </div>
+        </header>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <h2>Workflow Structure</h2>
+                <div id="workflow-tree">
+                    {% macro render_node(node, level=0) %}
+                        <div class="tree-node" style="margin-left: {{ level * 20 }}px;" data-id="{{ node.id }}">
+                            <span class="node-title" onclick="selectNode('{{ node.id }}')">{{ node.title }}</span>
+                            <div class="node-actions-inline">
+                                <button class="action-btn add-child-btn" onclick="event.stopPropagation(); prepareAddNodeForm('{{ node.id }}', true)" title="Add Child">+</button>
+                                <button class="action-btn add-sibling-btn" onclick="event.stopPropagation(); prepareAddNodeForm('{{ node.id }}', false)" title="Add Sibling"> S </button>
+                                <button class="action-btn delete-btn" onclick="event.stopPropagation(); deleteNode('{{ node.id }}')" title="Delete">&times;</button>
+                            </div>
+                        </div>
+                        {% if node.children %}
+                            {% for child in node.children %}
+                                {{ render_node(child, level + 1) }}
+                            {% endfor %}
+                        {% endif %}
+                    {% endmacro %}
+
+                    {% for node in workflow %}
+                        {{ render_node(node) }}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="editor-area">
+                <div class="graph-display">
+                    <h2>Workflow Visualization</h2>
+                    {% if graph_image_url %}
+                        <img id="workflowGraphImage" src="{{ graph_image_url }}?{{ range(1, 100000) | random }}" alt="Workflow Graph"> {% else %}
+                        <p>Could not render graph. Check Graphviz installation and Flask console for errors.</p>
+                    {% endif %}
+                </div>
+
+                <div class="node-editor">
+                    <h2>Edit Node</h2>
+                    <form id="editNodeForm">
+                        <input type="hidden" id="nodeId" name="nodeId">
+                        <div>
+                            <label for="nodeTitle">Title:</label>
+                            <input type="text" id="nodeTitle" name="title" required>
+                        </div>
+                        <div>
+                            <label for="nodeBullets">Bullets (one per line):</label>
+                            <textarea id="nodeBullets" name="bullets" rows="5"></textarea>
+                        </div>
+                        <button type="submit">Update Node</button>
+                        <button type="button" onclick="clearEditForm()">Clear Form / Deselect</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
